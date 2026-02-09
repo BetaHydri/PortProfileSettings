@@ -387,7 +387,9 @@ Describe 'Get-VMMPortProfileUsage' {
             $result = Get-VMMPortProfileUsage -ErrorVariable err -ErrorAction SilentlyContinue
             $result | Should -BeNullOrEmpty
             $err | Should -Not -BeNullOrEmpty
-            $err[0].Exception.Message | Should -BeLike '*Cannot connect to VMM*'
+            # ErrorVariable may contain both the raw exception and the Write-Error;
+            # verify that at least one entry carries the user-friendly message.
+            ($err | Where-Object { $_.Exception.Message -like '*Cannot connect to VMM*' }) | Should -Not -BeNullOrEmpty
         }
 
         It 'Writes an error when port profile sets retrieval fails' {
@@ -396,7 +398,9 @@ Describe 'Get-VMMPortProfileUsage' {
             $result = Get-VMMPortProfileUsage -ErrorVariable err -ErrorAction SilentlyContinue
             $result | Should -BeNullOrEmpty
             $err | Should -Not -BeNullOrEmpty
-            $err[0].Exception.Message | Should -BeLike '*Failed to retrieve*'
+            # ErrorVariable may contain both the raw exception and the Write-Error;
+            # verify that at least one entry carries the user-friendly message.
+            ($err | Where-Object { $_.Exception.Message -like '*Failed to retrieve*' }) | Should -Not -BeNullOrEmpty
         }
     }
 }
@@ -513,7 +517,9 @@ Describe 'Compare-VMMPortProfile' {
             $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' -DifferenceProfileName 'LowLatency' -ErrorAction SilentlyContinue -ErrorVariable err
             $result | Should -BeNullOrEmpty
             $err | Should -Not -BeNullOrEmpty
-            $err[0].Exception.Message | Should -BeLike '*Cannot connect to VMM*'
+            # ErrorVariable may contain both the raw exception and the Write-Error;
+            # verify that at least one entry carries the user-friendly message.
+            ($err | Where-Object { $_.Exception.Message -like '*Cannot connect to VMM*' }) | Should -Not -BeNullOrEmpty
         }
     }
 }

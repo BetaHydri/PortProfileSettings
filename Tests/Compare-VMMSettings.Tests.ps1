@@ -376,6 +376,26 @@ Describe 'Get-VMMPortProfileUsage' {
             $result[0].Name | Should -Be 'HighBandwidth'
         }
     }
+
+    Context 'VMM connection error handling' {
+
+        It 'Writes a meaningful error when VMM connection fails' {
+            Mock Get-SCVirtualNetworkAdapterNativePortProfile { throw [System.TypeInitializationException]::new('Microsoft.VirtualManager.Utils.TraceProviders.BitBos', $null) }
+            $result = Get-VMMPortProfileUsage -ErrorVariable err -ErrorAction SilentlyContinue
+            $result | Should -BeNullOrEmpty
+            $err | Should -Not -BeNullOrEmpty
+            $err[0].Exception.Message | Should -BeLike '*Cannot connect to VMM*'
+        }
+
+        It 'Writes an error when port profile sets retrieval fails' {
+            Mock Get-SCVirtualNetworkAdapterNativePortProfile { return @($script:ProfileA) }
+            Mock Get-SCVirtualNetworkAdapterPortProfileSet { throw 'Connection lost' }
+            $result = Get-VMMPortProfileUsage -ErrorVariable err -ErrorAction SilentlyContinue
+            $result | Should -BeNullOrEmpty
+            $err | Should -Not -BeNullOrEmpty
+            $err[0].Exception.Message | Should -BeLike '*Failed to retrieve*'
+        }
+    }
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -483,6 +503,14 @@ Describe 'Compare-VMMPortProfile' {
             Mock Get-SCVirtualNetworkAdapterNativePortProfile { return $null }
             $result = Compare-VMMPortProfile -ReferenceProfileName 'NonExistent' -DifferenceProfileName 'LowLatency' -ErrorAction SilentlyContinue -ErrorVariable err
             $err | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Writes a meaningful error when VMM connection fails' {
+            Mock Get-SCVirtualNetworkAdapterNativePortProfile { throw [System.TypeInitializationException]::new('Microsoft.VirtualManager.Utils.TraceProviders.BitBos', $null) }
+            $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' -DifferenceProfileName 'LowLatency' -ErrorAction SilentlyContinue -ErrorVariable err
+            $result | Should -BeNullOrEmpty
+            $err | Should -Not -BeNullOrEmpty
+            $err[0].Exception.Message | Should -BeLike '*Cannot connect to VMM*'
         }
     }
 }

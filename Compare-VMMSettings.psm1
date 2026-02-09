@@ -159,6 +159,25 @@ function Format-ConsoleTable {
     }
 }
 
+function Test-VMMConnection {
+    <#
+    .SYNOPSIS
+        Validates that a VMM server connection is available before querying.
+    #>
+    [CmdletBinding()]
+    param(
+        [hashtable]$ServerParam = @{}
+    )
+
+    try {
+        $null = Get-SCVMMServer @ServerParam -ErrorAction Stop
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
 #endregion
 
 #region Public Functions
@@ -245,19 +264,40 @@ function Get-VMMPortProfileUsage {
     }
 
     process {
-        # --- Virtual Network Adapter Native Port Profiles ---
-        Write-Verbose 'Retrieving virtual network adapter native port profiles...'
-        $vNicProfiles = if ($Name) {
-            Get-SCVirtualNetworkAdapterNativePortProfile -Name $Name @serverParam -ErrorAction SilentlyContinue
+        # --- Validate VMM connection ---
+        try {
+            # --- Virtual Network Adapter Native Port Profiles ---
+            Write-Verbose 'Retrieving virtual network adapter native port profiles...'
+            $vNicProfiles = if ($Name) {
+                Get-SCVirtualNetworkAdapterNativePortProfile -Name $Name @serverParam -ErrorAction Stop
+            }
+            else {
+                Get-SCVirtualNetworkAdapterNativePortProfile @serverParam -ErrorAction Stop
+            }
         }
-        else {
-            Get-SCVirtualNetworkAdapterNativePortProfile @serverParam
+        catch {
+            $msg = $_.Exception.Message
+            if ($msg -match 'TypeInitializer|BitBos|VMMServer|not connected' -or
+                $_.Exception.InnerException) {
+                Write-Error ('Cannot connect to VMM. Ensure you have an active VMM server connection ' +
+                    '(use Get-SCVMMServer first) or pass -VMMServer. Original error: {0}' -f $msg)
+            }
+            else {
+                Write-Error "Failed to retrieve port profiles: $msg"
+            }
+            return
         }
 
         # Pre-fetch port profile sets and logical switches for look-up
         Write-Verbose 'Retrieving port profile sets and logical switches...'
-        $allPortProfileSets = Get-SCVirtualNetworkAdapterPortProfileSet @serverParam
-        $allLogicalSwitches = Get-SCLogicalSwitch @serverParam
+        try {
+            $allPortProfileSets = Get-SCVirtualNetworkAdapterPortProfileSet @serverParam -ErrorAction Stop
+            $allLogicalSwitches = Get-SCLogicalSwitch @serverParam -ErrorAction Stop
+        }
+        catch {
+            Write-Error "Failed to retrieve port profile sets or logical switches: $($_.Exception.Message)"
+            return
+        }
 
         foreach ($profile in $vNicProfiles) {
             # Find port profile sets that reference this native port profile
@@ -315,14 +355,20 @@ function Get-VMMPortProfileUsage {
         # --- Native Uplink Port Profiles (opt-in) ---
         if ($IncludeUplinkProfiles) {
             Write-Verbose 'Retrieving native uplink port profiles...'
-            $uplinkProfiles = if ($Name) {
-                Get-SCNativeUplinkPortProfile -Name $Name @serverParam -ErrorAction SilentlyContinue
-            }
-            else {
-                Get-SCNativeUplinkPortProfile @serverParam
-            }
+            try {
+                $uplinkProfiles = if ($Name) {
+                    Get-SCNativeUplinkPortProfile -Name $Name @serverParam -ErrorAction Stop
+                }
+                else {
+                    Get-SCNativeUplinkPortProfile @serverParam -ErrorAction Stop
+                }
 
-            $allUplinkSets = Get-SCUplinkPortProfileSet @serverParam
+                $allUplinkSets = Get-SCUplinkPortProfileSet @serverParam -ErrorAction Stop
+            }
+            catch {
+                Write-Error "Failed to retrieve uplink port profiles: $($_.Exception.Message)"
+                return
+            }
 
             foreach ($profile in $uplinkProfiles) {
                 $boundSets = $allUplinkSets | Where-Object {
@@ -468,13 +514,27 @@ function Compare-VMMPortProfile {
 
     # Resolve profiles by name
     if ($PSCmdlet.ParameterSetName -eq 'ByName') {
-        if ($IncludeUplinkProfiles) {
-            $ReferenceProfile = Get-SCNativeUplinkPortProfile -Name $ReferenceProfileName @serverParam
-            $DifferenceProfile = Get-SCNativeUplinkPortProfile -Name $DifferenceProfileName @serverParam
+        try {
+            if ($IncludeUplinkProfiles) {
+                $ReferenceProfile = Get-SCNativeUplinkPortProfile -Name $ReferenceProfileName @serverParam -ErrorAction Stop
+                $DifferenceProfile = Get-SCNativeUplinkPortProfile -Name $DifferenceProfileName @serverParam -ErrorAction Stop
+            }
+            else {
+                $ReferenceProfile = Get-SCVirtualNetworkAdapterNativePortProfile -Name $ReferenceProfileName @serverParam -ErrorAction Stop
+                $DifferenceProfile = Get-SCVirtualNetworkAdapterNativePortProfile -Name $DifferenceProfileName @serverParam -ErrorAction Stop
+            }
         }
-        else {
-            $ReferenceProfile = Get-SCVirtualNetworkAdapterNativePortProfile -Name $ReferenceProfileName @serverParam
-            $DifferenceProfile = Get-SCVirtualNetworkAdapterNativePortProfile -Name $DifferenceProfileName @serverParam
+        catch {
+            $msg = $_.Exception.Message
+            if ($msg -match 'TypeInitializer|BitBos|VMMServer|not connected' -or
+                $_.Exception.InnerException) {
+                Write-Error ('Cannot connect to VMM. Ensure you have an active VMM server connection ' +
+                    '(use Get-SCVMMServer first) or pass -VMMServer. Original error: {0}' -f $msg)
+            }
+            else {
+                Write-Error "Failed to retrieve port profiles: $msg"
+            }
+            return
         }
     }
 

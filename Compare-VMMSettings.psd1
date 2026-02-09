@@ -4,7 +4,7 @@
     RootModule        = 'Compare-VMMSettings.psm1'
 
     # Version number of this module
-    ModuleVersion     = '1.0.0'
+    ModuleVersion     = '1.1.0'
 
     # Unique identifier for this module
     GUID              = 'a3f7c8e1-4b2d-4e9a-b6f0-1d2e3f4a5b6c'
@@ -69,11 +69,15 @@ uplink port profiles.
 
             # Release notes for this module
             ReleaseNotes = @'
+## 1.1.0 (2026-02-09)
+- Added Compare-VMMPortProfileSettings: Multi-profile key-settings matrix comparison
+- Added -HighlightDifferences switch for console-highlighted drift detection
+- Supports pipeline input from Get-VMMPortProfileUsage
+
 ## 1.0.0 (2026-02-09)
 - Initial release
 - Get-VMMPortProfileUsage: Retrieve port profiles with binding information
 - Compare-VMMPortProfile: Side-by-side comparison of two port profiles
-- Compare-VMMPortProfileSettings: Multi-profile key-settings matrix comparison
 - Get-VMMPortProfileBindingMatrix: Cross-reference matrix of profiles to logical switches
 - Uplink profiles excluded by default; opt-in via -IncludeUplinkProfiles
 '@

@@ -12,7 +12,7 @@
 
 .NOTES
     Module : Compare-VMMSettings
-    Version: 1.0.0
+    Version: 1.1.0
 #>
 
 #requires -Modules VirtualMachineManager
@@ -98,3 +98,38 @@ Write-Host "Exported to .\BindingMatrix.csv"
 $vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com'
 Get-VMMPortProfileUsage -VMMServer $vmm |
     Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 13. Settings matrix – compare key settings of multiple profiles at once
+# ──────────────────────────────────────────────────────────────────────────────
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 14. Settings matrix – show only differing settings
+# ──────────────────────────────────────────────────────────────────────────────
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
+    Where-Object { -not $_.AllMatch }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 15. Settings matrix – all profiles with highlighted differences
+# ──────────────────────────────────────────────────────────────────────────────
+Compare-VMMPortProfileSettings -HighlightDifferences
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 16. Settings matrix – pipe profile objects directly
+# ──────────────────────────────────────────────────────────────────────────────
+$profiles = Get-SCVirtualNetworkAdapterNativePortProfile
+Compare-VMMPortProfileSettings -ProfileObject $profiles
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 17. Settings matrix – include uplink profiles in the comparison
+# ──────────────────────────────────────────────────────────────────────────────
+Compare-VMMPortProfileSettings -Name 'UplinkTeamLBFO', 'UplinkTeamSET' -IncludeUplinkProfiles
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 18. Settings matrix – export differences to CSV
+# ──────────────────────────────────────────────────────────────────────────────
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
+    Where-Object { -not $_.AllMatch } |
+    Export-Csv -Path .\SettingsMatrixDiff.csv -NoTypeInformation
+Write-Host "Exported to .\SettingsMatrixDiff.csv"

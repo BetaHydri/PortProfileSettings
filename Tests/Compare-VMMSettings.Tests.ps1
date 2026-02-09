@@ -50,23 +50,23 @@ BeforeAll {
 
     function New-MockVNicProfile {
         param(
-            [string]$Name           = 'TestProfile',
-            [string]$Description    = 'Test description',
-            [guid]$ID               = (New-Guid),
-            [bool]$AllowIeeePriorityTagging                  = $true,
-            [bool]$AllowMacAddressSpoofing                   = $false,
-            [bool]$AllowTeaming                              = $true,
-            [bool]$EnableDhcpGuard                           = $false,
+            [string]$Name = 'TestProfile',
+            [string]$Description = 'Test description',
+            [guid]$ID = (New-Guid),
+            [bool]$AllowIeeePriorityTagging = $true,
+            [bool]$AllowMacAddressSpoofing = $false,
+            [bool]$AllowTeaming = $true,
+            [bool]$EnableDhcpGuard = $false,
             [bool]$EnableGuestIPNetworkVirtualizationUpdates = $false,
-            [bool]$EnableRouterGuard                         = $false,
-            [bool]$EnableVmq                                 = $true,
-            [bool]$EnableIPsecOffload                        = $true,
-            [bool]$EnableVrss                                = $true,
-            [bool]$EnableIov                                 = $false,
-            [int]$MinimumBandwidthWeight                     = 50,
-            [int]$MinimumBandwidthAbsolute                   = 0,
-            [int]$MaximumBandwidth                           = 10000,
-            $PortACL                                         = $null
+            [bool]$EnableRouterGuard = $false,
+            [bool]$EnableVmq = $true,
+            [bool]$EnableIPsecOffload = $true,
+            [bool]$EnableVrss = $true,
+            [bool]$EnableIov = $false,
+            [int]$MinimumBandwidthWeight = 50,
+            [int]$MinimumBandwidthAbsolute = 0,
+            [int]$MaximumBandwidth = 10000,
+            $PortACL = $null
         )
         [PSCustomObject]@{
             Name                                      = $Name
@@ -91,12 +91,12 @@ BeforeAll {
 
     function New-MockUplinkProfile {
         param(
-            [string]$Name                        = 'UplinkTest',
-            [string]$Description                 = 'Uplink description',
-            [guid]$ID                            = (New-Guid),
-            [bool]$EnableNetworkVirtualization   = $true,
-            [string]$LBFOLoadBalancingAlgorithm  = 'HyperVPort',
-            [string]$LBFOTeamMode                = 'SwitchIndependent'
+            [string]$Name = 'UplinkTest',
+            [string]$Description = 'Uplink description',
+            [guid]$ID = (New-Guid),
+            [bool]$EnableNetworkVirtualization = $true,
+            [string]$LBFOLoadBalancingAlgorithm = 'HyperVPort',
+            [string]$LBFOTeamMode = 'SwitchIndependent'
         )
         [PSCustomObject]@{
             Name                        = $Name
@@ -116,10 +116,10 @@ BeforeAll {
             [string]$ClassificationName = 'DefaultClass'
         )
         [PSCustomObject]@{
-            Name              = $Name
-            ID                = New-Guid
-            NativePortProfile = [PSCustomObject]@{ ID = $NativePortProfileID }
-            LogicalSwitch     = [PSCustomObject]@{ ID = $LogicalSwitchID }
+            Name               = $Name
+            ID                 = New-Guid
+            NativePortProfile  = [PSCustomObject]@{ ID = $NativePortProfileID }
+            LogicalSwitch      = [PSCustomObject]@{ ID = $LogicalSwitchID }
             PortClassification = [PSCustomObject]@{ Name = $ClassificationName }
         }
     }
@@ -132,10 +132,10 @@ BeforeAll {
             [guid[]]$UplinkPortProfileSetIDs = @()
         )
         [PSCustomObject]@{
-            Name                                    = $Name
-            ID                                      = $ID
-            VirtualNetworkAdapterPortProfileSets     = @($VirtualNetworkAdapterPortProfileSetIDs | ForEach-Object { [PSCustomObject]@{ ID = $_ } })
-            UplinkPortProfileSets                    = @($UplinkPortProfileSetIDs | ForEach-Object { [PSCustomObject]@{ ID = $_ } })
+            Name                                 = $Name
+            ID                                   = $ID
+            VirtualNetworkAdapterPortProfileSets = @($VirtualNetworkAdapterPortProfileSetIDs | ForEach-Object { [PSCustomObject]@{ ID = $_ } })
+            UplinkPortProfileSets                = @($UplinkPortProfileSetIDs | ForEach-Object { [PSCustomObject]@{ ID = $_ } })
         }
     }
 
@@ -146,10 +146,10 @@ BeforeAll {
             [guid]$LogicalSwitchID = (New-Guid)
         )
         [PSCustomObject]@{
-            Name                      = $Name
-            ID                        = New-Guid
-            NativeUplinkPortProfile   = [PSCustomObject]@{ ID = $NativeUplinkPortProfileID }
-            LogicalSwitch             = [PSCustomObject]@{ ID = $LogicalSwitchID }
+            Name                    = $Name
+            ID                      = New-Guid
+            NativeUplinkPortProfile = [PSCustomObject]@{ ID = $NativeUplinkPortProfileID }
+            LogicalSwitch           = [PSCustomObject]@{ ID = $LogicalSwitchID }
         }
     }
 
@@ -157,10 +157,10 @@ BeforeAll {
     $script:ProfileA_ID = [guid]'11111111-1111-1111-1111-111111111111'
     $script:ProfileB_ID = [guid]'22222222-2222-2222-2222-222222222222'
     $script:ProfileC_ID = [guid]'33333333-3333-3333-3333-333333333333'
-    $script:UplinkA_ID  = [guid]'44444444-4444-4444-4444-444444444444'
-    $script:UplinkB_ID  = [guid]'55555555-5555-5555-5555-555555555555'
-    $script:Switch1_ID  = [guid]'66666666-6666-6666-6666-666666666666'
-    $script:Switch2_ID  = [guid]'77777777-7777-7777-7777-777777777777'
+    $script:UplinkA_ID = [guid]'44444444-4444-4444-4444-444444444444'
+    $script:UplinkB_ID = [guid]'55555555-5555-5555-5555-555555555555'
+    $script:Switch1_ID = [guid]'66666666-6666-6666-6666-666666666666'
+    $script:Switch2_ID = [guid]'77777777-7777-7777-7777-777777777777'
 
     $script:ProfileA = New-MockVNicProfile -Name 'HighBandwidth'  -Description 'High throughput' -ID $ProfileA_ID -EnableVmq $true  -MinimumBandwidthWeight 80
     $script:ProfileB = New-MockVNicProfile -Name 'LowLatency'     -Description 'Low latency NIC' -ID $ProfileB_ID -EnableVmq $false -MinimumBandwidthWeight 50
@@ -214,28 +214,28 @@ Describe 'Get-PortProfilePropertyMap' {
 Describe 'Format-PropertyComparison' {
 
     It 'Returns one record per property' {
-        $ref  = [PSCustomObject]@{ A = 1; B = 2 }
+        $ref = [PSCustomObject]@{ A = 1; B = 2 }
         $diff = [PSCustomObject]@{ A = 1; B = 3 }
         $result = Format-PropertyComparison -ReferenceObject $ref -DifferenceObject $diff -Properties 'A', 'B'
         $result | Should -HaveCount 2
     }
 
     It 'Marks matching values with Match = $true' {
-        $ref  = [PSCustomObject]@{ X = 'Same' }
+        $ref = [PSCustomObject]@{ X = 'Same' }
         $diff = [PSCustomObject]@{ X = 'Same' }
         $result = Format-PropertyComparison -ReferenceObject $ref -DifferenceObject $diff -Properties 'X'
         $result[0].Match | Should -BeTrue
     }
 
     It 'Marks differing values with Match = $false' {
-        $ref  = [PSCustomObject]@{ X = 'One' }
+        $ref = [PSCustomObject]@{ X = 'One' }
         $diff = [PSCustomObject]@{ X = 'Two' }
         $result = Format-PropertyComparison -ReferenceObject $ref -DifferenceObject $diff -Properties 'X'
         $result[0].Match | Should -BeFalse
     }
 
     It 'Handles null values by converting to [not set]' {
-        $ref  = [PSCustomObject]@{ X = $null }
+        $ref = [PSCustomObject]@{ X = $null }
         $diff = [PSCustomObject]@{ X = $null }
         $result = Format-PropertyComparison -ReferenceObject $ref -DifferenceObject $diff -Properties 'X'
         $result[0].Reference | Should -Be '<not set>'
@@ -243,11 +243,11 @@ Describe 'Format-PropertyComparison' {
     }
 
     It 'Uses custom column names when provided' {
-        $ref  = [PSCustomObject]@{ Val = 10 }
+        $ref = [PSCustomObject]@{ Val = 10 }
         $diff = [PSCustomObject]@{ Val = 20 }
         $result = Format-PropertyComparison -ReferenceObject $ref -DifferenceObject $diff `
             -Properties 'Val' -ReferenceName 'Left' -DifferenceName 'Right'
-        $result[0].Left  | Should -Be '10'
+        $result[0].Left | Should -Be '10'
         $result[0].Right | Should -Be '20'
     }
 }
@@ -297,10 +297,10 @@ Describe 'Get-VMMPortProfileUsage' {
 
     BeforeEach {
         Mock Get-SCVirtualNetworkAdapterNativePortProfile { return @($script:ProfileA, $script:ProfileB, $script:ProfileC) }
-        Mock Get-SCVirtualNetworkAdapterPortProfileSet    { return @($script:PPS_A, $script:PPS_B) }
-        Mock Get-SCLogicalSwitch                          { return @($script:LS1, $script:LS2) }
-        Mock Get-SCNativeUplinkPortProfile                { return @($script:UplinkA, $script:UplinkB) }
-        Mock Get-SCUplinkPortProfileSet                   { return @($script:UPS_A, $script:UPS_B) }
+        Mock Get-SCVirtualNetworkAdapterPortProfileSet { return @($script:PPS_A, $script:PPS_B) }
+        Mock Get-SCLogicalSwitch { return @($script:LS1, $script:LS2) }
+        Mock Get-SCNativeUplinkPortProfile { return @($script:UplinkA, $script:UplinkB) }
+        Mock Get-SCUplinkPortProfileSet { return @($script:UPS_A, $script:UPS_B) }
     }
 
     Context 'vNIC profiles only (default)' {
@@ -322,26 +322,26 @@ Describe 'Get-VMMPortProfileUsage' {
 
         It 'Resolves LogicalSwitchNames for bound profiles' {
             $result = Get-VMMPortProfileUsage
-            $highBW = $result | Where-Object Name -eq 'HighBandwidth'
+            $highBW = $result | Where-Object Name -EQ 'HighBandwidth'
             $highBW.LogicalSwitchNames | Should -Not -BeNullOrEmpty
         }
 
         It 'Returns empty LogicalSwitchNames for orphaned profiles' {
             $result = Get-VMMPortProfileUsage
-            $orphan = $result | Where-Object Name -eq 'Orphan'
+            $orphan = $result | Where-Object Name -EQ 'Orphan'
             $orphan.LogicalSwitchNames | Should -BeNullOrEmpty
         }
 
         It 'Populates PortClassificationNames from bound sets' {
             $result = Get-VMMPortProfileUsage
-            $highBW = $result | Where-Object Name -eq 'HighBandwidth'
+            $highBW = $result | Where-Object Name -EQ 'HighBandwidth'
             $highBW.PortClassificationNames | Should -BeLike '*High Bandwidth*'
         }
 
         It 'Preserves key settings from the source profile' {
             $result = Get-VMMPortProfileUsage
-            $highBW = $result | Where-Object Name -eq 'HighBandwidth'
-            $highBW.EnableVmq              | Should -Be $true
+            $highBW = $result | Where-Object Name -EQ 'HighBandwidth'
+            $highBW.EnableVmq | Should -Be $true
             $highBW.MinimumBandwidthWeight | Should -Be 80
         }
 
@@ -360,7 +360,7 @@ Describe 'Get-VMMPortProfileUsage' {
 
         It 'Includes NativeUplink type entries' {
             $result = Get-VMMPortProfileUsage -IncludeUplinkProfiles
-            $uplinkResults = $result | Where-Object ProfileType -eq 'NativeUplink'
+            $uplinkResults = $result | Where-Object ProfileType -EQ 'NativeUplink'
             $uplinkResults | Should -HaveCount 2
         }
 
@@ -411,18 +411,18 @@ Describe 'Compare-VMMPortProfile' {
             param($Name)
             switch ($Name) {
                 'HighBandwidth' { $script:ProfileA }
-                'LowLatency'    { $script:ProfileB }
-                default         { $null }
+                'LowLatency' { $script:ProfileB }
+                default { $null }
             }
         }
         Mock Get-SCVirtualNetworkAdapterPortProfileSet { return @($script:PPS_A, $script:PPS_B) }
-        Mock Get-SCLogicalSwitch                        { return @($script:LS1, $script:LS2) }
+        Mock Get-SCLogicalSwitch { return @($script:LS1, $script:LS2) }
         Mock Get-SCNativeUplinkPortProfile {
             param($Name)
             switch ($Name) {
                 'UplinkLBFO' { $script:UplinkA }
-                'UplinkSET'  { $script:UplinkB }
-                default      { $null }
+                'UplinkSET' { $script:UplinkB }
+                default { $null }
             }
         }
         Mock Get-SCUplinkPortProfileSet { return @($script:UPS_A, $script:UPS_B) }
@@ -438,7 +438,7 @@ Describe 'Compare-VMMPortProfile' {
 
         It 'Reports the correct profile names' {
             $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' -DifferenceProfileName 'LowLatency'
-            $result.ReferenceProfile  | Should -Be 'HighBandwidth'
+            $result.ReferenceProfile | Should -Be 'HighBandwidth'
             $result.DifferenceProfile | Should -Be 'LowLatency'
         }
 
@@ -454,13 +454,13 @@ Describe 'Compare-VMMPortProfile' {
 
         It 'PropertyComparison contains difference for EnableVmq' {
             $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' -DifferenceProfileName 'LowLatency'
-            $vmqRow = $result.PropertyComparison | Where-Object Property -eq 'EnableVmq'
+            $vmqRow = $result.PropertyComparison | Where-Object Property -EQ 'EnableVmq'
             $vmqRow.Match | Should -BeFalse
         }
 
         It 'PropertyComparison marks matching properties correctly' {
             $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' -DifferenceProfileName 'LowLatency'
-            $teamingRow = $result.PropertyComparison | Where-Object Property -eq 'AllowTeaming'
+            $teamingRow = $result.PropertyComparison | Where-Object Property -EQ 'AllowTeaming'
             $teamingRow.Match | Should -BeTrue
         }
     }
@@ -525,10 +525,10 @@ Describe 'Get-VMMPortProfileBindingMatrix' {
 
     BeforeEach {
         Mock Get-SCVirtualNetworkAdapterNativePortProfile { return @($script:ProfileA, $script:ProfileB, $script:ProfileC) }
-        Mock Get-SCVirtualNetworkAdapterPortProfileSet    { return @($script:PPS_A, $script:PPS_B) }
-        Mock Get-SCLogicalSwitch                          { return @($script:LS1, $script:LS2) }
-        Mock Get-SCNativeUplinkPortProfile                { return @($script:UplinkA, $script:UplinkB) }
-        Mock Get-SCUplinkPortProfileSet                   { return @($script:UPS_A, $script:UPS_B) }
+        Mock Get-SCVirtualNetworkAdapterPortProfileSet { return @($script:PPS_A, $script:PPS_B) }
+        Mock Get-SCLogicalSwitch { return @($script:LS1, $script:LS2) }
+        Mock Get-SCNativeUplinkPortProfile { return @($script:UplinkA, $script:UplinkB) }
+        Mock Get-SCUplinkPortProfileSet { return @($script:UPS_A, $script:UPS_B) }
     }
 
     It 'Returns one object per profile' {
@@ -543,13 +543,13 @@ Describe 'Get-VMMPortProfileBindingMatrix' {
 
     It 'Shows <unbound> for profiles without logical switch bindings' {
         $result = Get-VMMPortProfileBindingMatrix
-        $orphan = $result | Where-Object ProfileName -eq 'Orphan'
+        $orphan = $result | Where-Object ProfileName -EQ 'Orphan'
         $orphan.LogicalSwitches | Should -Be '<unbound>'
     }
 
     It 'Shows switch names for bound profiles' {
         $result = Get-VMMPortProfileBindingMatrix
-        $highBW = $result | Where-Object ProfileName -eq 'HighBandwidth'
+        $highBW = $result | Where-Object ProfileName -EQ 'HighBandwidth'
         $highBW.LogicalSwitches | Should -Not -Be '<unbound>'
     }
 
@@ -566,10 +566,10 @@ Describe 'Compare-VMMPortProfileSettings' {
 
     BeforeEach {
         Mock Get-SCVirtualNetworkAdapterNativePortProfile { return @($script:ProfileA, $script:ProfileB, $script:ProfileC) }
-        Mock Get-SCVirtualNetworkAdapterPortProfileSet    { return @($script:PPS_A, $script:PPS_B) }
-        Mock Get-SCLogicalSwitch                          { return @($script:LS1, $script:LS2) }
-        Mock Get-SCNativeUplinkPortProfile                { return @($script:UplinkA, $script:UplinkB) }
-        Mock Get-SCUplinkPortProfileSet                   { return @($script:UPS_A, $script:UPS_B) }
+        Mock Get-SCVirtualNetworkAdapterPortProfileSet { return @($script:PPS_A, $script:PPS_B) }
+        Mock Get-SCLogicalSwitch { return @($script:LS1, $script:LS2) }
+        Mock Get-SCNativeUplinkPortProfile { return @($script:UplinkA, $script:UplinkB) }
+        Mock Get-SCUplinkPortProfileSet { return @($script:UPS_A, $script:UPS_B) }
         Mock Write-Host { }  # suppress console output
     }
 
@@ -592,13 +592,13 @@ Describe 'Compare-VMMPortProfileSettings' {
 
         It 'AllMatch is $true for identical settings' {
             $result = Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency'
-            $teamingRow = $result | Where-Object Setting -eq 'AllowTeaming'
+            $teamingRow = $result | Where-Object Setting -EQ 'AllowTeaming'
             $teamingRow.AllMatch | Should -BeTrue
         }
 
         It 'AllMatch is $false for differing settings' {
             $result = Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency'
-            $vmqRow = $result | Where-Object Setting -eq 'EnableVmq'
+            $vmqRow = $result | Where-Object Setting -EQ 'EnableVmq'
             $vmqRow.AllMatch | Should -BeFalse
         }
 
@@ -638,7 +638,7 @@ Describe 'Compare-VMMPortProfileSettings' {
 
             $result = Compare-VMMPortProfileSettings -ProfileObject @($usageA, $usageB)
             $result | Should -HaveCount 14
-            $vmqRow = $result | Where-Object Setting -eq 'EnableVmq'
+            $vmqRow = $result | Where-Object Setting -EQ 'EnableVmq'
             $vmqRow.AllMatch | Should -BeFalse
         }
     }
@@ -649,7 +649,7 @@ Describe 'Compare-VMMPortProfileSettings' {
             Mock Get-SCVirtualNetworkAdapterNativePortProfile { return @($script:ProfileA) }
             $result = Compare-VMMPortProfileSettings -Name 'HighBandwidth' -WarningVariable warn -WarningAction SilentlyContinue
             $result | Should -BeNullOrEmpty
-            $warn   | Should -Not -BeNullOrEmpty
+            $warn | Should -Not -BeNullOrEmpty
         }
     }
 

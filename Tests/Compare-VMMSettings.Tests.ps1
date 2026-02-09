@@ -14,8 +14,13 @@
 #>
 
 BeforeAll {
-    # ── Create stub functions for every VMM cmdlet the module calls ──────────
-    # This lets us dot-source the .psm1 without the real VMM module present.
+    # ── Prevent the real VMM module from loading ─────────────────────────────
+    # If the VMM Console is installed, Get-Command would trigger auto-loading
+    # of the VirtualMachineManager module, which initialises COM/WMI and hangs
+    # when no VMM server is reachable.  Remove the module first, then always
+    # create lightweight stubs that Pester can mock.
+    Remove-Module VirtualMachineManager -Force -ErrorAction SilentlyContinue
+
     $vmmCmdlets = @(
         'Get-SCVirtualNetworkAdapterNativePortProfile'
         'Get-SCVirtualNetworkAdapterPortProfileSet'
@@ -27,10 +32,8 @@ BeforeAll {
     )
 
     foreach ($name in $vmmCmdlets) {
-        if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-            # Create a global stub so the module code parses without errors
-            Set-Item -Path "function:global:$name" -Value { }
-        }
+        # Always create stubs — overrides real VMM cmdlets if the console is installed
+        Set-Item -Path "function:global:$name" -Value { }
     }
 
     # ── Dot-source the module implementation ─────────────────────────────────

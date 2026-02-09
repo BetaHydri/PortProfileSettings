@@ -364,9 +364,11 @@ Compare-VMMSettings/
 ├── Compare-VMMSettings.psm1    # Module implementation
 ├── LICENSE                     # MIT license
 ├── README.md                   # This file
-└── Samples/
-    ├── Sample-Usage.ps1        # Quick-start interactive examples
-    └── Sample-AuditDrift.ps1   # Automated drift-detection script
+├── Samples/
+│   ├── Sample-Usage.ps1        # Quick-start interactive examples
+│   └── Sample-AuditDrift.ps1   # Automated drift-detection script
+└── Tests/
+    └── Compare-VMMSettings.Tests.ps1  # Pester 5.x unit tests (mocked, no VMM required)
 ```
 
 ## Getting Help

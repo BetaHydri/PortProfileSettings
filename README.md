@@ -34,6 +34,7 @@ Import-Module .\Compare-VMMSettings.psd1
 |---|---|
 | `Get-VMMPortProfileUsage` | Retrieves port profiles with their settings and shows where they are bound |
 | `Compare-VMMPortProfile` | Side-by-side comparison of two port profiles with binding context |
+| `Compare-VMMPortProfileSettings` | Multi-profile key-settings matrix (rows = settings, columns = profiles) |
 | `Get-VMMPortProfileBindingMatrix` | Cross-reference matrix of profiles → logical switches |
 
 ---
@@ -275,6 +276,64 @@ Report saved to: .\AuditReport.csv
 | LowLatency | 2 | EnableVmq, MinimumBandwidthWeight |
 | OldTestProfile | 4 | AllowTeaming, EnableVmq, EnableVrss, MinimumBandwidthWeight |
 
+### 13. Settings matrix — compare multiple profiles at once
+
+```powershell
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault'
+```
+
+**Output:**
+
+```
+=== Port Profile Settings Matrix ===
+Profiles: HighBandwidth, LowLatency, GuestDefault
+Settings: 14  |  All identical: 8  |  Differ: 6
+```
+
+| Setting | HighBandwidth | LowLatency | GuestDefault | AllMatch |
+|---|---|---|---|---|
+| AllowIeeePriorityTagging | True | True | True | ✅ OK |
+| AllowMacAddressSpoofing | False | False | True | ⚠ DIFF |
+| AllowTeaming | True | True | False | ⚠ DIFF |
+| EnableDhcpGuard | False | False | False | ✅ OK |
+| EnableGuestIPNetworkVirtualizationUpdates | False | False | False | ✅ OK |
+| EnableRouterGuard | False | False | False | ✅ OK |
+| EnableVmq | True | False | False | ⚠ DIFF |
+| EnableIPsecOffload | True | True | False | ⚠ DIFF |
+| EnableVrss | True | True | True | ✅ OK |
+| EnableIov | False | False | False | ✅ OK |
+| MinimumBandwidthWeight | 80 | 50 | 20 | ⚠ DIFF |
+| MinimumBandwidthAbsolute | 0 | 0 | 0 | ✅ OK |
+| MaximumBandwidth | 10000 | 10000 | 5000 | ⚠ DIFF |
+| PortACL | *not set* | *not set* | *not set* | ✅ OK |
+
+### 14. Settings matrix — show only differences
+
+```powershell
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
+    Where-Object { -not $_.AllMatch }
+```
+
+**Output:**
+
+| Setting | HighBandwidth | LowLatency | GuestDefault | AllMatch |
+|---|---|---|---|---|
+| AllowMacAddressSpoofing | False | False | True | ⚠ DIFF |
+| AllowTeaming | True | True | False | ⚠ DIFF |
+| EnableVmq | True | False | False | ⚠ DIFF |
+| EnableIPsecOffload | True | True | False | ⚠ DIFF |
+| MinimumBandwidthWeight | 80 | 50 | 20 | ⚠ DIFF |
+| MaximumBandwidth | 10000 | 10000 | 5000 | ⚠ DIFF |
+
+### 15. Settings matrix — all profiles with highlighted differences
+
+```powershell
+Compare-VMMPortProfileSettings -HighlightDifferences
+```
+
+Outputs the full matrix to the console with differing rows printed in **yellow**
+for quick visual identification.
+
 ---
 
 ## Return Objects
@@ -285,6 +344,7 @@ All functions return structured PowerShell objects for pipeline use:
 |---|---|---|
 | `VMM.PortProfileUsage` | `Get-VMMPortProfileUsage` | `Name`, `ProfileType`, all settings, `LogicalSwitchNames`, `PortProfileSetNames`, `PortClassificationNames` |
 | `VMM.PortProfileComparison` | `Compare-VMMPortProfile` | `PropertyComparison` (array), `MatchingProperties`, `DifferingProperties`, `ReferenceBindings`, `DifferenceBindings` |
+| `VMM.PortProfileSettingsMatrix` | `Compare-VMMPortProfileSettings` | `Setting`, one column per profile name, `AllMatch` |
 | `VMM.PortProfileBindingMatrix` | `Get-VMMPortProfileBindingMatrix` | `ProfileName`, `ProfileType`, `LogicalSwitches`, `PortProfileSets`, `Classifications` |
 
 ## Project Structure
@@ -309,6 +369,7 @@ Get-Command -Module Compare-VMMSettings
 # Detailed help with examples
 Get-Help Get-VMMPortProfileUsage -Full
 Get-Help Compare-VMMPortProfile -Examples
+Get-Help Compare-VMMPortProfileSettings -Examples
 Get-Help Get-VMMPortProfileBindingMatrix -Examples
 ```
 

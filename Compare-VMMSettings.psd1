@@ -40,6 +40,7 @@ uplink port profiles.
     FunctionsToExport = @(
         'Get-VMMPortProfileUsage'
         'Compare-VMMPortProfile'
+        'Compare-VMMPortProfileSettings'
         'Get-VMMPortProfileBindingMatrix'
     )
 
@@ -72,6 +73,7 @@ uplink port profiles.
 - Initial release
 - Get-VMMPortProfileUsage: Retrieve port profiles with binding information
 - Compare-VMMPortProfile: Side-by-side comparison of two port profiles
+- Compare-VMMPortProfileSettings: Multi-profile key-settings matrix comparison
 - Get-VMMPortProfileBindingMatrix: Cross-reference matrix of profiles to logical switches
 - Uplink profiles excluded by default; opt-in via -IncludeUplinkProfiles
 '@

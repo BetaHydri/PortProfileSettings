@@ -591,6 +591,268 @@ function Get-VMMPortProfileBindingMatrix {
     }
 }
 
+
+function Compare-VMMPortProfileSettings {
+    <#
+    .SYNOPSIS
+        Compares key settings of multiple port profiles side by side in a matrix.
+
+    .DESCRIPTION
+        Takes two or more port profile names (or objects from Get-VMMPortProfileUsage)
+        and builds a matrix where each row is a key setting and each column is a
+        profile. A final "AllMatch" column indicates whether every profile has the
+        same value for that setting.
+
+        This makes it easy to spot configuration drift across many profiles at once
+        rather than comparing them pair by pair.
+
+    .PARAMETER Name
+        One or more port profile names to include in the matrix. Supports wildcards.
+        When omitted, all vNIC native port profiles are included.
+
+    .PARAMETER ProfileObject
+        One or more profile usage objects (from Get-VMMPortProfileUsage) to compare
+        directly, bypassing the VMM query.
+
+    .PARAMETER VMMServer
+        The VMM server connection to query. If omitted, the current default connection is used.
+
+    .PARAMETER IncludeUplinkProfiles
+        When specified, native uplink port profiles are compared instead of vNIC profiles.
+
+    .PARAMETER HighlightDifferences
+        When specified, the console output highlights rows where profiles differ.
+
+    .EXAMPLE
+        Compare-VMMPortProfileSettings
+
+        Compares all vNIC native port profiles and shows a settings matrix.
+
+    .EXAMPLE
+        Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault'
+
+        Compares the three named profiles in a side-by-side settings matrix.
+
+    .EXAMPLE
+        Compare-VMMPortProfileSettings -Name 'High*' -HighlightDifferences
+
+        Compares all profiles matching "High*" and highlights rows that differ.
+
+    .EXAMPLE
+        Compare-VMMPortProfileSettings -IncludeUplinkProfiles
+
+        Compares all native uplink port profiles in a settings matrix.
+
+    .EXAMPLE
+        $profiles = Get-VMMPortProfileUsage -Name 'Profile1', 'Profile2', 'Profile3'
+        Compare-VMMPortProfileSettings -ProfileObject $profiles
+
+        Passes pre-fetched profile objects to avoid re-querying VMM.
+
+    .EXAMPLE
+        Compare-VMMPortProfileSettings | Where-Object { -not $_.AllMatch }
+
+        Returns only the settings rows where at least one profile differs.
+
+    .LINK
+        Get-VMMPortProfileUsage
+
+    .LINK
+        Compare-VMMPortProfile
+
+    .LINK
+        Get-VMMPortProfileBindingMatrix
+    #>
+    [CmdletBinding(DefaultParameterSetName = 'ByName')]
+    param(
+        [Parameter(Position = 0, ParameterSetName = 'ByName')]
+        [SupportsWildcards()]
+        [string[]]$Name,
+
+        [Parameter(Mandatory, ParameterSetName = 'ByObject', ValueFromPipeline)]
+        [PSObject[]]$ProfileObject,
+
+        [Parameter()]
+        $VMMServer,
+
+        [Parameter()]
+        [switch]$IncludeUplinkProfiles,
+
+        [Parameter()]
+        [switch]$HighlightDifferences
+    )
+
+    begin {
+        $collectedObjects = [System.Collections.Generic.List[PSObject]]::new()
+    }
+
+    process {
+        if ($PSCmdlet.ParameterSetName -eq 'ByObject') {
+            foreach ($obj in $ProfileObject) {
+                $collectedObjects.Add($obj)
+            }
+        }
+    }
+
+    end {
+        $serverParam = @{}
+        if ($VMMServer) { $serverParam['VMMServer'] = $VMMServer }
+
+        # Resolve profiles
+        if ($PSCmdlet.ParameterSetName -eq 'ByName') {
+            if ($Name) {
+                foreach ($n in $Name) {
+                    $found = Get-VMMPortProfileUsage -Name $n @serverParam -IncludeUplinkProfiles:$IncludeUplinkProfiles
+                    foreach ($f in $found) { $collectedObjects.Add($f) }
+                }
+            }
+            else {
+                $found = Get-VMMPortProfileUsage @serverParam -IncludeUplinkProfiles:$IncludeUplinkProfiles
+                foreach ($f in $found) { $collectedObjects.Add($f) }
+            }
+        }
+
+        if ($collectedObjects.Count -lt 2) {
+            Write-Warning 'At least two port profiles are required for a settings comparison matrix.'
+            return
+        }
+
+        # De-duplicate by profile name
+        $profiles = $collectedObjects | Sort-Object -Property Name -Unique
+
+        # Determine which key settings to compare based on the profile types present
+        $hasVNic   = $profiles | Where-Object ProfileType -eq 'VirtualNetworkAdapter'
+        $hasUplink = $profiles | Where-Object ProfileType -eq 'NativeUplink'
+
+        $settingsMatrix = [System.Collections.Generic.List[PSObject]]::new()
+
+        if ($hasVNic) {
+            $vNicSettings = @(
+                'AllowIeeePriorityTagging'
+                'AllowMacAddressSpoofing'
+                'AllowTeaming'
+                'EnableDhcpGuard'
+                'EnableGuestIPNetworkVirtualizationUpdates'
+                'EnableRouterGuard'
+                'EnableVmq'
+                'EnableIPsecOffload'
+                'EnableVrss'
+                'EnableIov'
+                'MinimumBandwidthWeight'
+                'MinimumBandwidthAbsolute'
+                'MaximumBandwidth'
+                'PortACL'
+            )
+
+            $vNicProfiles = @($hasVNic)
+
+            foreach ($setting in $vNicSettings) {
+                $row = [ordered]@{
+                    Setting  = $setting
+                }
+
+                $values = [System.Collections.Generic.List[string]]::new()
+
+                foreach ($p in $vNicProfiles) {
+                    $val = $p.$setting
+                    $valStr = if ($null -eq $val) { '<not set>' } else { "$val" }
+                    $row[$p.Name] = $valStr
+                    $values.Add($valStr)
+                }
+
+                $row['AllMatch'] = ($values | Sort-Object -Unique | Measure-Object).Count -eq 1
+
+                $obj = [PSCustomObject]$row
+                $obj.PSObject.TypeNames.Insert(0, 'VMM.PortProfileSettingsMatrix')
+                $settingsMatrix.Add($obj)
+            }
+        }
+
+        if ($hasUplink) {
+            $uplinkSettings = @(
+                'EnableNetworkVirtualization'
+                'LBFOLoadBalancingAlgorithm'
+                'LBFOTeamMode'
+            )
+
+            $uplinkProfiles = @($hasUplink)
+
+            foreach ($setting in $uplinkSettings) {
+                $row = [ordered]@{
+                    Setting  = $setting
+                }
+
+                $values = [System.Collections.Generic.List[string]]::new()
+
+                foreach ($p in $uplinkProfiles) {
+                    $val = $p.$setting
+                    $valStr = if ($null -eq $val) { '<not set>' } else { "$val" }
+                    $row[$p.Name] = $valStr
+                    $values.Add($valStr)
+                }
+
+                $row['AllMatch'] = ($values | Sort-Object -Unique | Measure-Object).Count -eq 1
+
+                $obj = [PSCustomObject]$row
+                $obj.PSObject.TypeNames.Insert(0, 'VMM.PortProfileSettingsMatrix')
+                $settingsMatrix.Add($obj)
+            }
+        }
+
+        # Console display
+        $profileNames = @($profiles | ForEach-Object { $_.Name })
+        $columns = @('Setting') + $profileNames + @('AllMatch')
+
+        Write-Host "`n=== Port Profile Settings Matrix ===" -ForegroundColor Cyan
+        Write-Host "Profiles: $($profileNames -join ', ')" -ForegroundColor White
+        Write-Host ("Settings: {0}  |  All identical: {1}  |  Differ: {2}" -f `
+            $settingsMatrix.Count,
+            ($settingsMatrix | Where-Object AllMatch | Measure-Object).Count,
+            ($settingsMatrix | Where-Object { -not $_.AllMatch } | Measure-Object).Count
+        )
+        Write-Host ''
+
+        if ($HighlightDifferences) {
+            foreach ($row in $settingsMatrix) {
+                $line = ($columns | ForEach-Object {
+                    $val = $row.$_
+                    if ($_ -eq 'AllMatch') {
+                        if ($val) { 'OK' } else { '<<< DIFF' }
+                    }
+                    else { $val }
+                }) -join '  |  '
+
+                if (-not $row.AllMatch) {
+                    Write-Host $line -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host $line
+                }
+            }
+            Write-Host ''
+        }
+        else {
+            $ftColumns = @(
+                'Setting'
+            ) + @(
+                $profileNames | ForEach-Object {
+                    $pn = $_
+                    @{ Name = $pn; Expression = [scriptblock]::Create("`$_.'$pn'") }
+                }
+            ) + @(
+                @{Name = 'AllMatch'; Expression = {
+                    if ($_.AllMatch) { 'OK' } else { '<<< DIFF' }
+                }}
+            )
+
+            $settingsMatrix | Format-Table -AutoSize -Property $ftColumns
+        }
+
+        # Return structured objects for pipeline
+        $settingsMatrix
+    }
+}
+
 #endregion
 
 #region Module Exports
@@ -598,6 +860,7 @@ function Get-VMMPortProfileBindingMatrix {
 Export-ModuleMember -Function @(
     'Get-VMMPortProfileUsage'
     'Compare-VMMPortProfile'
+    'Compare-VMMPortProfileSettings'
     'Get-VMMPortProfileBindingMatrix'
 )
 

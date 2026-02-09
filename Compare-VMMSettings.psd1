@@ -4,7 +4,7 @@
     RootModule        = 'Compare-VMMSettings.psm1'
 
     # Version number of this module
-    ModuleVersion     = '1.1.0'
+    ModuleVersion     = '1.2.0'
 
     # Unique identifier for this module
     GUID              = 'a3f7c8e1-4b2d-4e9a-b6f0-1d2e3f4a5b6c'
@@ -69,6 +69,11 @@ uplink port profiles.
 
             # Release notes for this module
             ReleaseNotes = @'
+## 1.2.0 (2026-02-09)
+- Console output now renders proper pipe-bordered ASCII tables
+- Added emoji-safe status markers: Unicode on PS 7.x, ASCII fallback on PS 5.1
+- Added Format-ConsoleTable private helper for consistent table rendering
+
 ## 1.1.0 (2026-02-09)
 - Added Compare-VMMPortProfileSettings: Multi-profile key-settings matrix comparison
 - Added -HighlightDifferences switch for console-highlighted drift detection

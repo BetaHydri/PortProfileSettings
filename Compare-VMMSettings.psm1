@@ -13,6 +13,16 @@
     Uplink port profiles can be included via the -IncludeUplinkProfiles switch.
 #>
 
+# Emoji-safe status markers — Unicode on PS 7.x, ASCII fallback on PS 5.1
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $script:SymbolOK   = "$([char]0x2705) OK"
+    $script:SymbolDIFF = "$([char]0x26A0)  DIFF"
+}
+else {
+    $script:SymbolOK   = '[OK]'
+    $script:SymbolDIFF = '[DIFF]'
+}
+
 #region Helper Functions
 
 function Get-PortProfilePropertyMap {
@@ -95,6 +105,56 @@ function Format-PropertyComparison {
             $ReferenceName  = $refStr
             $DifferenceName = $diffStr
             Match           = $match
+        }
+    }
+}
+
+function Format-ConsoleTable {
+    <#
+    .SYNOPSIS
+        Renders an array of objects as a pipe-bordered ASCII table on the console.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [PSObject[]]$Data,
+
+        [Parameter(Mandatory)]
+        [string[]]$Columns,
+
+        [scriptblock]$HighlightCondition
+    )
+
+    # Calculate column widths (minimum = header length)
+    $widths = [ordered]@{}
+    foreach ($col in $Columns) {
+        $maxLen = $col.Length
+        foreach ($row in $Data) {
+            $len = "$($row.$col)".Length
+            if ($len -gt $maxLen) { $maxLen = $len }
+        }
+        $widths[$col] = $maxLen
+    }
+
+    # Build lines
+    $separatorParts = $Columns | ForEach-Object { '-' * ($widths[$_] + 2) }
+    $separator   = '|' + ($separatorParts -join '|') + '|'
+
+    $headerParts = $Columns | ForEach-Object { ' ' + $_.PadRight($widths[$_]) + ' ' }
+    $headerLine  = '|' + ($headerParts -join '|') + '|'
+
+    Write-Host $headerLine
+    Write-Host $separator
+
+    foreach ($row in $Data) {
+        $parts = $Columns | ForEach-Object { ' ' + "$($row.$_)".PadRight($widths[$_]) + ' ' }
+        $line  = '|' + ($parts -join '|') + '|'
+
+        if ($HighlightCondition -and (& $HighlightCondition $row)) {
+            Write-Host $line -ForegroundColor Yellow
+        }
+        else {
+            Write-Host $line
         }
     }
 }
@@ -470,13 +530,18 @@ function Compare-VMMPortProfile {
     Write-Host ("Matching  : {0}/{1}  |  Differing: {2}/{1}" -f $summary.MatchingProperties, $summary.TotalProperties, $summary.DifferingProperties)
     Write-Host ''
 
-    $comparison | Format-Table -AutoSize -Property Property,
-    @{Name = $ReferenceProfile.Name; Expression = { $_.$($ReferenceProfile.Name) } },
-    @{Name = $DifferenceProfile.Name; Expression = { $_.$($DifferenceProfile.Name) } },
-    @{Name = 'Match'; Expression = {
-            if ($_.Match) { 'OK' } else { '<<< DIFF' }
-        }
+    # Build display rows with emoji markers
+    $displayData = foreach ($row in $comparison) {
+        $d = [ordered]@{ Property = $row.Property }
+        $d[$ReferenceProfile.Name]  = $row.$($ReferenceProfile.Name)
+        $d[$DifferenceProfile.Name] = $row.$($DifferenceProfile.Name)
+        $d['Match'] = if ($row.Match) { $script:SymbolOK } else { $script:SymbolDIFF }
+        [PSCustomObject]$d
     }
+
+    $tableColumns = @('Property', $ReferenceProfile.Name, $DifferenceProfile.Name, 'Match')
+    Format-ConsoleTable -Data $displayData -Columns $tableColumns
+    Write-Host ''
 
     # Show bindings
     Write-Host '--- Bindings ---' -ForegroundColor Cyan
@@ -812,41 +877,22 @@ function Compare-VMMPortProfileSettings {
         )
         Write-Host ''
 
-        if ($HighlightDifferences) {
-            foreach ($row in $settingsMatrix) {
-                $line = ($columns | ForEach-Object {
-                    $val = $row.$_
-                    if ($_ -eq 'AllMatch') {
-                        if ($val) { 'OK' } else { '<<< DIFF' }
-                    }
-                    else { $val }
-                }) -join '  |  '
-
-                if (-not $row.AllMatch) {
-                    Write-Host $line -ForegroundColor Yellow
-                }
-                else {
-                    Write-Host $line
-                }
+        # Build display rows with emoji markers
+        $displayData = foreach ($row in $settingsMatrix) {
+            $d = [ordered]@{ Setting = $row.Setting }
+            foreach ($pn in $profileNames) {
+                $d[$pn] = $row.$pn
             }
-            Write-Host ''
+            $d['AllMatch'] = if ($row.AllMatch) { $script:SymbolOK } else { $script:SymbolDIFF }
+            [PSCustomObject]$d
         }
-        else {
-            $ftColumns = @(
-                'Setting'
-            ) + @(
-                $profileNames | ForEach-Object {
-                    $pn = $_
-                    @{ Name = $pn; Expression = [scriptblock]::Create("`$_.'$pn'") }
-                }
-            ) + @(
-                @{Name = 'AllMatch'; Expression = {
-                    if ($_.AllMatch) { 'OK' } else { '<<< DIFF' }
-                }}
-            )
 
-            $settingsMatrix | Format-Table -AutoSize -Property $ftColumns
-        }
+        $highlightBlock = if ($HighlightDifferences) {
+            { param($r) $r.AllMatch -like '*DIFF*' }
+        } else { $null }
+
+        Format-ConsoleTable -Data $displayData -Columns $columns -HighlightCondition $highlightBlock
+        Write-Host ''
 
         # Return structured objects for pipeline
         $settingsMatrix

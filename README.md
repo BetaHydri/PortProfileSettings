@@ -15,8 +15,10 @@ Quickly identify where port profiles are used, which logical switches reference 
 
 - **Retrieve** all vNIC native port profiles with their full settings and binding context
 - **Compare** two port profiles property-by-property with a clear OK / DIFF report
+- **Matrix view** of key settings across multiple profiles at once — spot differences instantly
 - **Cross-reference** profiles against logical switches in a single binding matrix
 - Uplink port profiles excluded by default — opt-in with `-IncludeUplinkProfiles`
+- Highlight differences in the console with `-HighlightDifferences`
 - Structured output objects for further pipeline processing or CSV export
 
 ## Requirements

@@ -295,7 +295,15 @@ function Get-VMMPortProfileUsage {
             $allLogicalSwitches = Get-SCLogicalSwitch @serverParam -ErrorAction Stop
         }
         catch {
-            Write-Error "Failed to retrieve port profile sets or logical switches: $($_.Exception.Message)"
+            $msg = $_.Exception.Message
+            if ($msg -match 'TypeInitializer|BitBos|VMMServer|not connected' -or
+                $_.Exception.InnerException) {
+                Write-Error ('Cannot connect to VMM. Ensure you have an active VMM server connection ' +
+                    '(use Get-SCVMMServer first) or pass -VMMServer. Original error: {0}' -f $msg)
+            }
+            else {
+                Write-Error "Failed to retrieve port profile sets or logical switches: $msg"
+            }
             return
         }
 
@@ -366,7 +374,15 @@ function Get-VMMPortProfileUsage {
                 $allUplinkSets = Get-SCUplinkPortProfileSet @serverParam -ErrorAction Stop
             }
             catch {
-                Write-Error "Failed to retrieve uplink port profiles: $($_.Exception.Message)"
+                $msg = $_.Exception.Message
+                if ($msg -match 'TypeInitializer|BitBos|VMMServer|not connected' -or
+                    $_.Exception.InnerException) {
+                    Write-Error ('Cannot connect to VMM. Ensure you have an active VMM server connection ' +
+                        '(use Get-SCVMMServer first) or pass -VMMServer. Original error: {0}' -f $msg)
+                }
+                else {
+                    Write-Error "Failed to retrieve uplink port profiles: $msg"
+                }
                 return
             }
 

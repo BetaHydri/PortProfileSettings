@@ -15,11 +15,11 @@
 
 # Emoji-safe status markers — Unicode on PS 7.x, ASCII fallback on PS 5.1
 if ($PSVersionTable.PSVersion.Major -ge 7) {
-    $script:SymbolOK   = "$([char]0x2705) OK"
+    $script:SymbolOK = "$([char]0x2705) OK"
     $script:SymbolDIFF = "$([char]0x26A0)  DIFF"
 }
 else {
-    $script:SymbolOK   = '[OK]'
+    $script:SymbolOK = '[OK]'
     $script:SymbolDIFF = '[DIFF]'
 }
 
@@ -138,17 +138,17 @@ function Format-ConsoleTable {
 
     # Build lines
     $separatorParts = $Columns | ForEach-Object { '-' * ($widths[$_] + 2) }
-    $separator   = '|' + ($separatorParts -join '|') + '|'
+    $separator = '|' + ($separatorParts -join '|') + '|'
 
     $headerParts = $Columns | ForEach-Object { ' ' + $_.PadRight($widths[$_]) + ' ' }
-    $headerLine  = '|' + ($headerParts -join '|') + '|'
+    $headerLine = '|' + ($headerParts -join '|') + '|'
 
     Write-Host $headerLine
     Write-Host $separator
 
     foreach ($row in $Data) {
         $parts = $Columns | ForEach-Object { ' ' + "$($row.$_)".PadRight($widths[$_]) + ' ' }
-        $line  = '|' + ($parts -join '|') + '|'
+        $line = '|' + ($parts -join '|') + '|'
 
         if ($HighlightCondition -and (& $HighlightCondition $row)) {
             Write-Host $line -ForegroundColor Yellow
@@ -609,7 +609,7 @@ function Compare-VMMPortProfile {
     # Build display rows with emoji markers
     $displayData = foreach ($row in $comparison) {
         $d = [ordered]@{ Property = $row.Property }
-        $d[$ReferenceProfile.Name]  = $row.$($ReferenceProfile.Name)
+        $d[$ReferenceProfile.Name] = $row.$($ReferenceProfile.Name)
         $d[$DifferenceProfile.Name] = $row.$($DifferenceProfile.Name)
         $d['Match'] = if ($row.Match) { $script:SymbolOK } else { $script:SymbolDIFF }
         [PSCustomObject]$d
@@ -862,8 +862,8 @@ function Compare-VMMPortProfileSettings {
         $profiles = $collectedObjects | Sort-Object -Property Name -Unique
 
         # Determine which key settings to compare based on the profile types present
-        $hasVNic   = $profiles | Where-Object ProfileType -eq 'VirtualNetworkAdapter'
-        $hasUplink = $profiles | Where-Object ProfileType -eq 'NativeUplink'
+        $hasVNic = $profiles | Where-Object ProfileType -EQ 'VirtualNetworkAdapter'
+        $hasUplink = $profiles | Where-Object ProfileType -EQ 'NativeUplink'
 
         $settingsMatrix = [System.Collections.Generic.List[PSObject]]::new()
 
@@ -889,7 +889,7 @@ function Compare-VMMPortProfileSettings {
 
             foreach ($setting in $vNicSettings) {
                 $row = [ordered]@{
-                    Setting  = $setting
+                    Setting = $setting
                 }
 
                 $values = [System.Collections.Generic.List[string]]::new()
@@ -920,7 +920,7 @@ function Compare-VMMPortProfileSettings {
 
             foreach ($setting in $uplinkSettings) {
                 $row = [ordered]@{
-                    Setting  = $setting
+                    Setting = $setting
                 }
 
                 $values = [System.Collections.Generic.List[string]]::new()
@@ -947,7 +947,7 @@ function Compare-VMMPortProfileSettings {
         Write-Host "`n=== Port Profile Settings Matrix ===" -ForegroundColor Cyan
         Write-Host "Profiles: $($profileNames -join ', ')" -ForegroundColor White
         Write-Host ("Settings: {0}  |  All identical: {1}  |  Differ: {2}" -f `
-            $settingsMatrix.Count,
+                $settingsMatrix.Count,
             ($settingsMatrix | Where-Object AllMatch | Measure-Object).Count,
             ($settingsMatrix | Where-Object { -not $_.AllMatch } | Measure-Object).Count
         )
@@ -965,7 +965,8 @@ function Compare-VMMPortProfileSettings {
 
         $highlightBlock = if ($HighlightDifferences) {
             { param($r) $r.AllMatch -like '*DIFF*' }
-        } else { $null }
+        }
+        else { $null }
 
         Format-ConsoleTable -Data $displayData -Columns $columns -HighlightCondition $highlightBlock
         Write-Host ''

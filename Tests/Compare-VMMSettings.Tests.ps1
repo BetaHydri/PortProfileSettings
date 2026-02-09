@@ -35,7 +35,8 @@ BeforeAll {
 
     # ── Dot-source the module implementation ─────────────────────────────────
     # Read the file, strip directives that fail outside a module context, then execute.
-    $modulePath = Join-Path $PSScriptRoot '..' 'Compare-VMMSettings.psm1'
+    # Use nested Join-Path for PS 5.1 compatibility (3-arg overload is PS 7+ only)
+    $modulePath = Join-Path (Join-Path $PSScriptRoot '..') 'Compare-VMMSettings.psm1'
     $moduleCode = (Get-Content -Path $modulePath -Raw) `
         -replace '#Requires\s+-Modules\s+VirtualMachineManager', '' `
         -replace 'Export-ModuleMember\s+-Function\s+@\([^)]+\)', ''
@@ -657,7 +658,7 @@ Describe 'Module Manifest' {
     BeforeAll {
         # Use Import-PowerShellDataFile instead of Test-ModuleManifest to avoid
         # hanging when RequiredModules (VirtualMachineManager) is not installed.
-        $script:ManifestPath = Join-Path $PSScriptRoot '..' 'Compare-VMMSettings.psd1'
+        $script:ManifestPath = Join-Path (Join-Path $PSScriptRoot '..') 'Compare-VMMSettings.psd1'
         $script:Manifest = Import-PowerShellDataFile -Path $script:ManifestPath
     }
 

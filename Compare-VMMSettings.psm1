@@ -592,6 +592,10 @@ function Compare-VMMPortProfile {
     Write-Host ("Matching  : {0}/{1}  |  Differing: {2}/{1}" -f $summary.MatchingProperties, $summary.TotalProperties, $summary.DifferingProperties)
     Write-Host ''
 
+    # Show property comparison table
+    Write-Host '--- Property Comparison ---' -ForegroundColor Cyan
+    $comparison | Format-Table -AutoSize | Out-String | Write-Host
+
     # Show bindings
     Write-Host '--- Bindings ---' -ForegroundColor Cyan
 

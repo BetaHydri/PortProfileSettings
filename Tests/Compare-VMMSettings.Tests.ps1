@@ -584,6 +584,109 @@ Describe 'Get-VMMPortProfileBindingMatrix' {
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
+# Get-VMMLogicalSwitchUsage
+# ═════════════════════════════════════════════════════════════════════════════
+Describe 'Get-VMMLogicalSwitchUsage' {
+
+    BeforeEach {
+        Mock Get-SCLogicalSwitch { return @($script:LS1, $script:LS2) }
+        Mock Get-SCVirtualNetworkAdapterPortProfileSet { return @($script:PPS_A, $script:PPS_B) }
+        Mock Get-SCUplinkPortProfileSet { return @($script:UPS_A, $script:UPS_B) }
+    }
+
+    Context 'Default behaviour' {
+
+        It 'Returns one object per logical switch' {
+            $result = Get-VMMLogicalSwitchUsage
+            $result | Should -HaveCount 2
+        }
+
+        It 'Each object has PSTypeName VMM.LogicalSwitchUsage' {
+            $result = Get-VMMLogicalSwitchUsage
+            $result | ForEach-Object { $_.PSObject.TypeNames | Should -Contain 'VMM.LogicalSwitchUsage' }
+        }
+
+        It 'Includes Name, Description, and ID properties' {
+            $result = Get-VMMLogicalSwitchUsage
+            $cs01 = $result | Where-Object Name -EQ 'ConvergedSwitch01'
+            $cs01.Name | Should -Be 'ConvergedSwitch01'
+            $cs01.ID | Should -Be $script:Switch1_ID
+        }
+
+        It 'Resolves vNIC port profile set names for ConvergedSwitch01' {
+            $result = Get-VMMLogicalSwitchUsage
+            $cs01 = $result | Where-Object Name -EQ 'ConvergedSwitch01'
+            $cs01.VNicPortProfileSetNames | Should -BeLike '*HighBW-PPS*'
+            $cs01.VNicPortProfileSetNames | Should -BeLike '*LowLat-PPS*'
+            $cs01.VNicPortProfileSetCount | Should -Be 2
+        }
+
+        It 'Resolves uplink port profile set names for ConvergedSwitch01' {
+            $result = Get-VMMLogicalSwitchUsage
+            $cs01 = $result | Where-Object Name -EQ 'ConvergedSwitch01'
+            $cs01.UplinkPortProfileSetNames | Should -BeLike '*LBFO-UplinkPPS*'
+            $cs01.UplinkPortProfileSetCount | Should -Be 1
+        }
+
+        It 'Resolves native port profile names from vNIC PPS' {
+            $result = Get-VMMLogicalSwitchUsage
+            $cs01 = $result | Where-Object Name -EQ 'ConvergedSwitch01'
+            $cs01.NativePortProfileNames | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Resolves port classification names from vNIC PPS' {
+            $result = Get-VMMLogicalSwitchUsage
+            $cs01 = $result | Where-Object Name -EQ 'ConvergedSwitch01'
+            $cs01.PortClassificationNames | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Returns empty binding names for MgmtSwitch with no vNIC PPS' {
+            $result = Get-VMMLogicalSwitchUsage
+            $mgmt = $result | Where-Object Name -EQ 'MgmtSwitch'
+            $mgmt.VNicPortProfileSetNames | Should -BeNullOrEmpty
+            $mgmt.VNicPortProfileSetCount | Should -Be 0
+        }
+
+        It 'Resolves uplink bindings for MgmtSwitch' {
+            $result = Get-VMMLogicalSwitchUsage
+            $mgmt = $result | Where-Object Name -EQ 'MgmtSwitch'
+            $mgmt.UplinkPortProfileSetNames | Should -BeLike '*SET-UplinkPPS*'
+            $mgmt.UplinkPortProfileSetCount | Should -Be 1
+        }
+    }
+
+    Context 'With -Name filter' {
+
+        It 'Passes the Name parameter to Get-SCLogicalSwitch' {
+            Mock Get-SCLogicalSwitch { return @($script:LS1) } -ParameterFilter { $Name -eq 'ConvergedSwitch01' }
+            $result = Get-VMMLogicalSwitchUsage -Name 'ConvergedSwitch01'
+            $result | Should -HaveCount 1
+            $result[0].Name | Should -Be 'ConvergedSwitch01'
+        }
+    }
+
+    Context 'VMM connection error handling' {
+
+        It 'Writes a meaningful error when logical switch retrieval fails (VMM)' {
+            Mock Get-SCLogicalSwitch { throw [System.TypeInitializationException]::new('Microsoft.VirtualManager.Utils.TraceProviders.BitBos', $null) }
+            $result = Get-VMMLogicalSwitchUsage -ErrorVariable err -ErrorAction SilentlyContinue
+            $result | Should -BeNullOrEmpty
+            $err | Should -Not -BeNullOrEmpty
+            ($err | Where-Object { $_.Exception.Message -like '*Cannot connect to VMM*' }) | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Writes an error when port profile set retrieval fails' {
+            Mock Get-SCLogicalSwitch { return @($script:LS1) }
+            Mock Get-SCVirtualNetworkAdapterPortProfileSet { throw 'Connection lost' }
+            $result = Get-VMMLogicalSwitchUsage -ErrorVariable err -ErrorAction SilentlyContinue
+            $result | Should -BeNullOrEmpty
+            $err | Should -Not -BeNullOrEmpty
+            ($err | Where-Object { $_.Exception.Message -like '*Failed to retrieve*' }) | Should -Not -BeNullOrEmpty
+        }
+    }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
 # Compare-VMMPortProfileSettings
 # ═════════════════════════════════════════════════════════════════════════════
 Describe 'Compare-VMMPortProfileSettings' {
@@ -714,8 +817,8 @@ Describe 'Module Manifest' {
         $script:Manifest | Should -Not -BeNullOrEmpty
     }
 
-    It 'Exports exactly 4 functions' {
-        $script:Manifest.FunctionsToExport.Count | Should -Be 4
+    It 'Exports exactly 5 functions' {
+        $script:Manifest.FunctionsToExport.Count | Should -Be 5
     }
 
     It 'Exports Get-VMMPortProfileUsage' {
@@ -732,6 +835,10 @@ Describe 'Module Manifest' {
 
     It 'Exports Get-VMMPortProfileBindingMatrix' {
         $script:Manifest.FunctionsToExport | Should -Contain 'Get-VMMPortProfileBindingMatrix'
+    }
+
+    It 'Exports Get-VMMLogicalSwitchUsage' {
+        $script:Manifest.FunctionsToExport | Should -Contain 'Get-VMMLogicalSwitchUsage'
     }
 
     It 'Requires PowerShell 5.1 or higher' {

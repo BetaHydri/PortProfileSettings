@@ -4,7 +4,7 @@
     RootModule        = 'Compare-VMMSettings.psm1'
 
     # Version number of this module
-    ModuleVersion     = '1.5.0'
+    ModuleVersion     = '1.6.0'
 
     # Unique identifier for this module
     GUID              = 'a3f7c8e1-4b2d-4e9a-b6f0-1d2e3f4a5b6c'
@@ -42,6 +42,7 @@ uplink port profiles.
         'Compare-VMMPortProfile'
         'Compare-VMMPortProfileSettings'
         'Get-VMMPortProfileBindingMatrix'
+        'Get-VMMLogicalSwitchUsage'
     )
 
     # Cmdlets to export from this module
@@ -69,20 +70,22 @@ uplink port profiles.
 
             # Release notes for this module
             ReleaseNotes = @'
-## 1.2.0 (2026-02-09)
-- Console output now renders proper pipe-bordered ASCII tables
-- Added emoji-safe status markers: Unicode on PS 7.x, ASCII fallback on PS 5.1
-- Added Format-ConsoleTable private helper for consistent table rendering
+## 1.6.0 (2026-02-10)
+- Added Get-VMMLogicalSwitchUsage: Shows which port profiles, port profile sets,
+  and classifications are bound to each logical switch (reverse view of
+  Get-VMMPortProfileUsage)
 
-## 1.1.0 (2026-02-09)
-- Added Compare-VMMPortProfileSettings: Multi-profile key-settings matrix comparison
-- Added -HighlightDifferences switch for console-highlighted drift detection
-- Supports pipeline input from Get-VMMPortProfileUsage
+## 1.5.0 (2026-02-09)
+- Added Resolve-VMMServerConnection: Accepts hostname, server:port, or connection object
+- All public functions now support -VMMServer parameter for flexible connections
+- Replaced backtick line continuations with splatting for robustness
+- Property comparison table now displayed in console output for Compare-VMMPortProfile
 
 ## 1.0.0 (2026-02-09)
 - Initial release
 - Get-VMMPortProfileUsage: Retrieve port profiles with binding information
 - Compare-VMMPortProfile: Side-by-side comparison of two port profiles
+- Compare-VMMPortProfileSettings: Multi-profile key-settings matrix comparison
 - Get-VMMPortProfileBindingMatrix: Cross-reference matrix of profiles to logical switches
 - Uplink profiles excluded by default; opt-in via -IncludeUplinkProfiles
 '@

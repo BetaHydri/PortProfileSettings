@@ -228,6 +228,9 @@ function Get-VMMPortProfileUsage {
 
     .LINK
         Get-VMMPortProfileBindingMatrix
+
+    .LINK
+        Get-VMMLogicalSwitchUsage
     #>
     [CmdletBinding()]
     param(
@@ -485,6 +488,9 @@ function Compare-VMMPortProfile {
 
     .LINK
         Get-VMMPortProfileBindingMatrix
+
+    .LINK
+        Get-VMMLogicalSwitchUsage
     #>
     [CmdletBinding(DefaultParameterSetName = 'ByName')]
     param(
@@ -667,6 +673,9 @@ function Get-VMMPortProfileBindingMatrix {
 
     .LINK
         Compare-VMMPortProfile
+
+    .LINK
+        Get-VMMLogicalSwitchUsage
     #>
     [CmdletBinding()]
     param(
@@ -705,6 +714,184 @@ function Get-VMMPortProfileBindingMatrix {
             PortProfileSets = if ($profileSetNames) { $profileSetNames } else { '<unbound>' }
             Classifications = if ($usage.PortClassificationNames) { $usage.PortClassificationNames } else { '-' }
         }
+    }
+}
+
+
+function Get-VMMLogicalSwitchUsage {
+    <#
+    .SYNOPSIS
+        Retrieves VMM logical switches with their port profile and classification bindings.
+
+    .DESCRIPTION
+        Collects all logical switches from VMM and enriches each with the virtual
+        network adapter port profile sets, uplink port profile sets, native port
+        profiles, native uplink port profiles, and port classifications that are
+        assigned to them. Returns a summary object per logical switch.
+
+        This provides the reverse perspective of Get-VMMPortProfileUsage: instead
+        of showing where a port profile is bound, it shows what is bound to each
+        logical switch.
+
+    .PARAMETER Name
+        Filter logical switches by name. Supports wildcards.
+
+    .PARAMETER VMMServer
+        The VMM server to query. Accepts a hostname string, 'server:port' for
+        custom ports (defaults to port 8100), or an existing VMM server connection
+        object. If omitted, the current default connection is used.
+
+    .EXAMPLE
+        Get-VMMLogicalSwitchUsage
+
+        Returns all logical switches with their port profile set and port profile
+        bindings.
+
+    .EXAMPLE
+        Get-VMMLogicalSwitchUsage -Name 'ConvergedSwitch*'
+
+        Returns only logical switches matching the wildcard pattern.
+
+    .EXAMPLE
+        Get-VMMLogicalSwitchUsage | Format-Table Name, VNicPortProfileSetNames, UplinkPortProfileSetNames -AutoSize
+
+        Displays a quick overview table of all logical switches and their
+        port profile set assignments.
+
+    .EXAMPLE
+        Get-VMMLogicalSwitchUsage | Where-Object VNicPortProfileSetNames -eq ''
+
+        Lists logical switches that have no vNIC port profile sets assigned.
+
+    .EXAMPLE
+        Get-VMMLogicalSwitchUsage -VMMServer 'vmm01.contoso.com'
+
+        Connects to the specified VMM server and retrieves logical switch usage.
+
+    .LINK
+        Get-VMMPortProfileUsage
+
+    .LINK
+        Compare-VMMPortProfile
+
+    .LINK
+        Get-VMMPortProfileBindingMatrix
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)]
+        [SupportsWildcards()]
+        [string]$Name,
+
+        [Parameter()]
+        $VMMServer
+    )
+
+    begin {
+        $serverParam = Resolve-VMMServerConnection -VMMServer $VMMServer
+        $results = [System.Collections.Generic.List[PSObject]]::new()
+    }
+
+    process {
+        # Retrieve logical switches
+        try {
+            Write-Verbose 'Retrieving logical switches...'
+            $logicalSwitches = if ($Name) {
+                Get-SCLogicalSwitch -Name $Name @serverParam -ErrorAction Stop
+            }
+            else {
+                Get-SCLogicalSwitch @serverParam -ErrorAction Stop
+            }
+        }
+        catch {
+            $msg = $_.Exception.Message
+            if ($msg -match 'TypeInitializer|BitBos|VMMServer|not connected' -or
+                $_.Exception.InnerException) {
+                Write-Error ('Cannot connect to VMM. Ensure you have an active VMM server connection ' +
+                    '(use Get-SCVMMServer first) or pass -VMMServer. Original error: {0}' -f $msg)
+            }
+            else {
+                Write-Error "Failed to retrieve logical switches: $msg"
+            }
+            return
+        }
+
+        # Pre-fetch port profile sets for cross-referencing
+        Write-Verbose 'Retrieving port profile sets...'
+        try {
+            $allVNicPPS = Get-SCVirtualNetworkAdapterPortProfileSet @serverParam -ErrorAction Stop
+            $allUplinkPPS = Get-SCUplinkPortProfileSet @serverParam -ErrorAction Stop
+        }
+        catch {
+            $msg = $_.Exception.Message
+            if ($msg -match 'TypeInitializer|BitBos|VMMServer|not connected' -or
+                $_.Exception.InnerException) {
+                Write-Error ('Cannot connect to VMM. Ensure you have an active VMM server connection ' +
+                    '(use Get-SCVMMServer first) or pass -VMMServer. Original error: {0}' -f $msg)
+            }
+            else {
+                Write-Error "Failed to retrieve port profile sets: $msg"
+            }
+            return
+        }
+
+        foreach ($ls in $logicalSwitches) {
+            # vNIC port profile sets bound to this logical switch
+            $boundVNicPPS = @($allVNicPPS | Where-Object { $_.LogicalSwitch.ID -eq $ls.ID })
+
+            # Uplink port profile sets bound to this logical switch
+            $boundUplinkPPS = @($allUplinkPPS | Where-Object { $_.LogicalSwitch.ID -eq $ls.ID })
+
+            # Native port profiles referenced by the vNIC PPS
+            $nativeProfiles = @($boundVNicPPS |
+                ForEach-Object { $_.NativePortProfile } |
+                Where-Object { $_ } |
+                Sort-Object -Property Name -Unique)
+
+            # Native uplink port profiles referenced by the uplink PPS
+            $nativeUplinkProfiles = @($boundUplinkPPS |
+                ForEach-Object { $_.NativeUplinkPortProfile } |
+                Where-Object { $_ } |
+                Sort-Object -Property Name -Unique)
+
+            # Port classifications from the vNIC PPS
+            $classifications = @($boundVNicPPS |
+                ForEach-Object { $_.PortClassification } |
+                Where-Object { $_ } |
+                Sort-Object -Property Name -Unique)
+
+            $obj = [PSCustomObject]@{
+                PSTypeName                   = 'VMM.LogicalSwitchUsage'
+                Name                         = $ls.Name
+                Description                  = $ls.Description
+                ID                           = $ls.ID
+                # vNIC port profile sets
+                VNicPortProfileSets          = $boundVNicPPS
+                VNicPortProfileSetNames      = ($boundVNicPPS | ForEach-Object { $_.Name }) -join ', '
+                VNicPortProfileSetCount      = $boundVNicPPS.Count
+                # Native port profiles (from vNIC PPS)
+                NativePortProfiles           = $nativeProfiles
+                NativePortProfileNames       = ($nativeProfiles | ForEach-Object { $_.Name }) -join ', '
+                # Uplink port profile sets
+                UplinkPortProfileSets        = $boundUplinkPPS
+                UplinkPortProfileSetNames    = ($boundUplinkPPS | ForEach-Object { $_.Name }) -join ', '
+                UplinkPortProfileSetCount    = $boundUplinkPPS.Count
+                # Native uplink port profiles (from uplink PPS)
+                NativeUplinkPortProfiles     = $nativeUplinkProfiles
+                NativeUplinkPortProfileNames = ($nativeUplinkProfiles | ForEach-Object { $_.Name }) -join ', '
+                # Port classifications
+                PortClassifications          = $classifications
+                PortClassificationNames      = ($classifications | ForEach-Object { $_.Name }) -join ', '
+                # Source object
+                SourceObject                 = $ls
+            }
+
+            $results.Add($obj)
+        }
+    }
+
+    end {
+        $results
     }
 }
 
@@ -771,6 +958,9 @@ function Compare-VMMPortProfileSettings {
 
     .LINK
         Get-VMMPortProfileBindingMatrix
+
+    .LINK
+        Get-VMMLogicalSwitchUsage
     #>
     [CmdletBinding(DefaultParameterSetName = 'ByName')]
     param(
@@ -928,6 +1118,7 @@ Export-ModuleMember -Function @(
     'Compare-VMMPortProfile'
     'Compare-VMMPortProfileSettings'
     'Get-VMMPortProfileBindingMatrix'
+    'Get-VMMLogicalSwitchUsage'
 )
 
 #endregion

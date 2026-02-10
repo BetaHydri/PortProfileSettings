@@ -909,11 +909,9 @@ function Compare-VMMPortProfileSettings {
 
         Write-Host "`n=== Port Profile Settings Matrix ===" -ForegroundColor Cyan
         Write-Host "Profiles: $($profileNames -join ', ')" -ForegroundColor White
-        Write-Host ("Settings: {0}  |  All identical: {1}  |  Differ: {2}" -f `
-                $settingsMatrix.Count,
-            ($settingsMatrix | Where-Object AllMatch | Measure-Object).Count,
-            ($settingsMatrix | Where-Object { -not $_.AllMatch } | Measure-Object).Count
-        )
+        $identicalCount = ($settingsMatrix | Where-Object AllMatch | Measure-Object).Count
+        $differCount = ($settingsMatrix | Where-Object { -not $_.AllMatch } | Measure-Object).Count
+        Write-Host ("Settings: {0}  |  All identical: {1}  |  Differ: {2}" -f $settingsMatrix.Count, $identicalCount, $differCount)
         Write-Host ''
 
         # Return structured objects for pipeline

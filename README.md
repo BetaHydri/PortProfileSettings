@@ -4,7 +4,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![SCVMM](https://img.shields.io/badge/SCVMM-2019%20%7C%202022%20%7C%202025-5C2D91?logo=microsoft&logoColor=white)
-![Module Version](https://img.shields.io/badge/Version-1.2.0-orange)
+![Module Version](https://img.shields.io/badge/Version-1.3.0-orange)
 ![Functions](https://img.shields.io/badge/Functions-4-informational)
 
 A PowerShell module for **comparing and reporting on VMM Port Profile settings** and their bindings across the System Center Virtual Machine Manager (SCVMM) fabric.

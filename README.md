@@ -264,8 +264,7 @@ Get-VMMPortProfileBindingMatrix -IncludeUplinkProfiles |
 ### 11. Query a specific VMM server
 
 ```powershell
-$vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com'
-Get-VMMPortProfileUsage -VMMServer $vmm |
+Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com' |
     Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
 ```
 

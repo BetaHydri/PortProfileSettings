@@ -98,8 +98,7 @@ Write-Host "Exported to .\BindingMatrix.csv"
 # ──────────────────────────────────────────────────────────────────────────────
 # 12. Query a specific VMM server
 # ──────────────────────────────────────────────────────────────────────────────
-$vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com'
-Get-VMMPortProfileUsage -VMMServer $vmm |
+Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com' |
     Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────

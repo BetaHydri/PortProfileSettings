@@ -114,6 +114,45 @@ function Test-VMMConnection {
     }
 }
 
+function Resolve-VMMServerConnection {
+    <#
+    .SYNOPSIS
+        Resolves a VMMServer parameter to a connected VMM server object.
+    .DESCRIPTION
+        Accepts either a hostname string or an existing VMM server connection object.
+        If a string is passed, connects via Get-SCVMMServer -ComputerName with port 8100.
+        Returns a hashtable suitable for splatting (@{ VMMServer = $connection }).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        $VMMServer
+    )
+
+    if (-not $VMMServer) {
+        return @{}
+    }
+
+    # Already a VMM server connection object — use it directly
+    if ($VMMServer -is [Microsoft.SystemCenter.VirtualMachineManager.Remoting.ServerConnection]) {
+        return @{ VMMServer = $VMMServer }
+    }
+
+    # Treat as hostname string — connect on the default VMM port
+    if ($VMMServer -is [string]) {
+        try {
+            $connection = Get-SCVMMServer -ComputerName $VMMServer -TCPPort 8100 -ErrorAction Stop
+            return @{ VMMServer = $connection }
+        }
+        catch {
+            throw "Failed to connect to VMM server '$VMMServer' on port 8100: $($_.Exception.Message)"
+        }
+    }
+
+    # Unknown type — try passing it through (best effort)
+    return @{ VMMServer = $VMMServer }
+}
+
 #endregion
 
 #region Public Functions
@@ -133,7 +172,8 @@ function Get-VMMPortProfileUsage {
         Filter port profiles by name. Supports wildcards.
 
     .PARAMETER VMMServer
-        The VMM server connection to query. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string (connects via port 8100)
+        or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are also included in the output.
@@ -169,9 +209,9 @@ function Get-VMMPortProfileUsage {
         Displays a quick overview table of all port profiles and their bindings.
 
     .EXAMPLE
-        Get-VMMPortProfileUsage -VMMServer (Get-SCVMMServer -ComputerName "vmm01.contoso.com")
+        Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com'
 
-        Queries a specific VMM server for port profile usage information.
+        Connects to the specified VMM server on port 8100 and retrieves port profile usage.
 
     .LINK
         Compare-VMMPortProfile
@@ -193,8 +233,7 @@ function Get-VMMPortProfileUsage {
     )
 
     begin {
-        $serverParam = @{}
-        if ($VMMServer) { $serverParam['VMMServer'] = $VMMServer }
+        $serverParam = Resolve-VMMServerConnection -VMMServer $VMMServer
 
         $results = [System.Collections.Generic.List[PSObject]]::new()
     }
@@ -389,7 +428,8 @@ function Compare-VMMPortProfile {
         A port profile object to use as the difference side of the comparison.
 
     .PARAMETER VMMServer
-        The VMM server connection to query. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string (connects via port 8100)
+        or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, compares native uplink port profiles instead of vNIC port profiles.
@@ -461,8 +501,7 @@ function Compare-VMMPortProfile {
         [switch]$DifferencesOnly
     )
 
-    $serverParam = @{}
-    if ($VMMServer) { $serverParam['VMMServer'] = $VMMServer }
+    $serverParam = Resolve-VMMServerConnection -VMMServer $VMMServer
 
     # Resolve profiles by name
     if ($PSCmdlet.ParameterSetName -eq 'ByName') {
@@ -580,7 +619,8 @@ function Get-VMMPortProfileBindingMatrix {
         matrix that makes it easy to see at a glance which profiles are assigned where.
 
     .PARAMETER VMMServer
-        The VMM server connection to query.
+        The VMM server to query. Accepts a hostname string (connects via port 8100)
+        or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are also included in the matrix.
@@ -623,8 +663,7 @@ function Get-VMMPortProfileBindingMatrix {
         [switch]$IncludeUplinkProfiles
     )
 
-    $serverParam = @{}
-    if ($VMMServer) { $serverParam['VMMServer'] = $VMMServer }
+    $serverParam = Resolve-VMMServerConnection -VMMServer $VMMServer
 
     $allUsage = Get-VMMPortProfileUsage @serverParam -IncludeUplinkProfiles:$IncludeUplinkProfiles
 
@@ -679,7 +718,8 @@ function Compare-VMMPortProfileSettings {
         directly, bypassing the VMM query.
 
     .PARAMETER VMMServer
-        The VMM server connection to query. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string (connects via port 8100)
+        or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are compared instead of vNIC profiles.
@@ -748,8 +788,7 @@ function Compare-VMMPortProfileSettings {
     }
 
     end {
-        $serverParam = @{}
-        if ($VMMServer) { $serverParam['VMMServer'] = $VMMServer }
+        $serverParam = Resolve-VMMServerConnection -VMMServer $VMMServer
 
         # Resolve profiles
         if ($PSCmdlet.ParameterSetName -eq 'ByName') {

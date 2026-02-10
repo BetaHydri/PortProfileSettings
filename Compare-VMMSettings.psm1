@@ -117,12 +117,16 @@ function Test-VMMConnection {
 function Resolve-VMMServerConnection {
     <#
     .SYNOPSIS
-        Resolves a VMMServer parameter to a connected VMM server object.
+        Resolves a VMMServer parameter and establishes the VMM connection.
     .DESCRIPTION
         Accepts either a hostname string or an existing VMM server connection object.
         If a string is passed, connects via Get-SCVMMServer. Supports 'server:port'
         notation for custom ports, or just 'server' which defaults to port 8100.
-        Returns a hashtable suitable for splatting (@{ VMMServer = $connection }).
+
+        Once Get-SCVMMServer is called, it sets the default VMM connection for the
+        session. All subsequent SC cmdlets use this connection implicitly, so this
+        function returns an empty hashtable for splatting. This avoids issues with
+        deserialized ServerConnection objects that cannot be passed via -VMMServer.
     #>
     [CmdletBinding()]
     param(
@@ -134,12 +138,7 @@ function Resolve-VMMServerConnection {
         return @{}
     }
 
-    # Already a VMM server connection object — use it directly
-    if ($VMMServer -is [Microsoft.SystemCenter.VirtualMachineManager.Remoting.ServerConnection]) {
-        return @{ VMMServer = $VMMServer }
-    }
-
-    # Treat as hostname string — supports 'server' (port 8100) or 'server:port'
+    # If it's a string, establish a connection (sets the session default)
     if ($VMMServer -is [string]) {
         if ($VMMServer -match '^(?<host>[^:]+):(?<port>\d+)$') {
             $computerName = $Matches['host']
@@ -150,16 +149,19 @@ function Resolve-VMMServerConnection {
             $port = 8100
         }
         try {
-            $connection = Get-SCVMMServer -ComputerName $computerName -TCPPort $port -ErrorAction Stop
-            return @{ VMMServer = $connection }
+            $null = Get-SCVMMServer -ComputerName $computerName -TCPPort $port -ErrorAction Stop
+            Write-Verbose "Connected to VMM server '$computerName' on port $port."
+            return @{}
         }
         catch {
             throw "Failed to connect to VMM server '$computerName' on port ${port}: $($_.Exception.Message)"
         }
     }
 
-    # Unknown type — try passing it through (best effort)
-    return @{ VMMServer = $VMMServer }
+    # Already a connection object (or deserialized) — the session should already
+    # have an active default connection, so no need to pass it explicitly.
+    Write-Verbose 'Using existing VMM server connection.'
+    return @{}
 }
 
 #endregion

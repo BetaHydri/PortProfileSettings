@@ -120,13 +120,14 @@ BeforeAll {
         param(
             [string]$Name,
             [guid]$NativePortProfileID,
+            [string]$NativePortProfileName = '',
             [guid]$LogicalSwitchID = (New-Guid),
             [string]$ClassificationName = 'DefaultClass'
         )
         [PSCustomObject]@{
             Name               = $Name
             ID                 = New-Guid
-            NativePortProfile  = [PSCustomObject]@{ ID = $NativePortProfileID }
+            NativePortProfile  = [PSCustomObject]@{ ID = $NativePortProfileID; Name = $NativePortProfileName }
             LogicalSwitch      = [PSCustomObject]@{ ID = $LogicalSwitchID }
             PortClassification = [PSCustomObject]@{ Name = $ClassificationName }
         }
@@ -151,12 +152,13 @@ BeforeAll {
         param(
             [string]$Name,
             [guid]$NativeUplinkPortProfileID,
+            [string]$NativeUplinkPortProfileName = '',
             [guid]$LogicalSwitchID = (New-Guid)
         )
         [PSCustomObject]@{
             Name                    = $Name
             ID                      = New-Guid
-            NativeUplinkPortProfile = [PSCustomObject]@{ ID = $NativeUplinkPortProfileID }
+            NativeUplinkPortProfile = [PSCustomObject]@{ ID = $NativeUplinkPortProfileID; Name = $NativeUplinkPortProfileName }
             LogicalSwitch           = [PSCustomObject]@{ ID = $LogicalSwitchID }
         }
     }
@@ -177,15 +179,15 @@ BeforeAll {
     $script:UplinkA = New-MockUplinkProfile -Name 'UplinkLBFO' -ID $UplinkA_ID -LBFOLoadBalancingAlgorithm 'HyperVPort'
     $script:UplinkB = New-MockUplinkProfile -Name 'UplinkSET'  -ID $UplinkB_ID -LBFOLoadBalancingAlgorithm 'Dynamic'
 
-    $script:PPS_A = New-MockPortProfileSet -Name 'HighBW-PPS' -NativePortProfileID $ProfileA_ID -LogicalSwitchID $Switch1_ID -ClassificationName 'High Bandwidth'
-    $script:PPS_B = New-MockPortProfileSet -Name 'LowLat-PPS' -NativePortProfileID $ProfileB_ID -LogicalSwitchID $Switch1_ID -ClassificationName 'Low Latency'
+    $script:PPS_A = New-MockPortProfileSet -Name 'HighBW-PPS' -NativePortProfileID $ProfileA_ID -NativePortProfileName 'HighBandwidth' -LogicalSwitchID $Switch1_ID -ClassificationName 'High Bandwidth'
+    $script:PPS_B = New-MockPortProfileSet -Name 'LowLat-PPS' -NativePortProfileID $ProfileB_ID -NativePortProfileName 'LowLatency' -LogicalSwitchID $Switch1_ID -ClassificationName 'Low Latency'
     # ProfileC is intentionally NOT bound
 
     $script:LS1 = New-MockLogicalSwitch -Name 'ConvergedSwitch01' -ID $Switch1_ID -VirtualNetworkAdapterPortProfileSetIDs @($PPS_A.ID, $PPS_B.ID)
     $script:LS2 = New-MockLogicalSwitch -Name 'MgmtSwitch'        -ID $Switch2_ID
 
-    $script:UPS_A = New-MockUplinkPortProfileSet -Name 'LBFO-UplinkPPS' -NativeUplinkPortProfileID $UplinkA_ID -LogicalSwitchID $Switch1_ID
-    $script:UPS_B = New-MockUplinkPortProfileSet -Name 'SET-UplinkPPS'  -NativeUplinkPortProfileID $UplinkB_ID -LogicalSwitchID $Switch2_ID
+    $script:UPS_A = New-MockUplinkPortProfileSet -Name 'LBFO-UplinkPPS' -NativeUplinkPortProfileID $UplinkA_ID -NativeUplinkPortProfileName 'UplinkLBFO' -LogicalSwitchID $Switch1_ID
+    $script:UPS_B = New-MockUplinkPortProfileSet -Name 'SET-UplinkPPS'  -NativeUplinkPortProfileID $UplinkB_ID -NativeUplinkPortProfileName 'UplinkSET' -LogicalSwitchID $Switch2_ID
 }
 
 # ═════════════════════════════════════════════════════════════════════════════

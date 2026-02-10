@@ -185,20 +185,20 @@ BeforeAll {
 # ═════════════════════════════════════════════════════════════════════════════
 Describe 'Get-PortProfilePropertyMap' {
 
-    It 'Returns 16 properties for VirtualNetworkAdapter' {
+    It 'Returns 14 properties for VirtualNetworkAdapter' {
         $result = Get-PortProfilePropertyMap -ProfileType 'VirtualNetworkAdapter'
-        $result | Should -HaveCount 16
+        $result | Should -HaveCount 14
     }
 
-    It 'Includes Name and Description for VirtualNetworkAdapter' {
+    It 'Does not include Name or Description for VirtualNetworkAdapter' {
         $result = Get-PortProfilePropertyMap -ProfileType 'VirtualNetworkAdapter'
-        $result | Should -Contain 'Name'
-        $result | Should -Contain 'Description'
+        $result | Should -Not -Contain 'Name'
+        $result | Should -Not -Contain 'Description'
     }
 
-    It 'Returns 5 properties for NativeUplink' {
+    It 'Returns 3 properties for NativeUplink' {
         $result = Get-PortProfilePropertyMap -ProfileType 'NativeUplink'
-        $result | Should -HaveCount 5
+        $result | Should -HaveCount 3
     }
 
     It 'Includes LBFOTeamMode for NativeUplink' {
@@ -252,41 +252,51 @@ Describe 'Format-PropertyComparison' {
     }
 }
 
-Describe 'Format-ConsoleTable' {
+Describe 'Resolve-VMMServerConnection' {
 
-    It 'Produces pipe-bordered output on the console' {
-        $data = @([PSCustomObject]@{ Col1 = 'A'; Col2 = 'B' })
-        # Capture Write-Host output via -InformationVariable is not available;
-        # instead, just verify it does not throw
-        { Format-ConsoleTable -Data $data -Columns 'Col1', 'Col2' 6>$null } | Should -Not -Throw
+    BeforeEach {
+        Mock Get-SCVMMServer { [PSCustomObject]@{ Name = 'vmm01'; FQDN = 'vmm01.contoso.com' } }
     }
 
-    It 'Does not throw when HighlightCondition is provided' {
-        $data = @(
-            [PSCustomObject]@{ Name = 'Row1'; Status = 'OK' }
-            [PSCustomObject]@{ Name = 'Row2'; Status = 'DIFF' }
-        )
-        $condition = { param($r) $r.Status -eq 'DIFF' }
-        { Format-ConsoleTable -Data $data -Columns 'Name', 'Status' -HighlightCondition $condition 6>$null } | Should -Not -Throw
-    }
-}
-
-Describe 'Emoji-safe status markers' {
-
-    It 'SymbolOK is set and non-empty' {
-        $script:SymbolOK | Should -Not -BeNullOrEmpty
+    It 'Returns an empty hashtable when VMMServer is not provided' {
+        $result = Resolve-VMMServerConnection
+        $result | Should -BeOfType [hashtable]
+        $result.Count | Should -Be 0
     }
 
-    It 'SymbolDIFF is set and non-empty' {
-        $script:SymbolDIFF | Should -Not -BeNullOrEmpty
+    It 'Returns an empty hashtable when VMMServer is $null' {
+        $result = Resolve-VMMServerConnection -VMMServer $null
+        $result | Should -BeOfType [hashtable]
+        $result.Count | Should -Be 0
     }
 
-    It 'SymbolOK contains OK' {
-        $script:SymbolOK | Should -BeLike '*OK*'
+    It 'Calls Get-SCVMMServer with hostname and default port 8100' {
+        $result = Resolve-VMMServerConnection -VMMServer 'vmm01.contoso.com'
+        Should -Invoke Get-SCVMMServer -Times 1 -Exactly -ParameterFilter {
+            $ComputerName -eq 'vmm01.contoso.com' -and $TCPPort -eq 8100
+        }
+        $result.Count | Should -Be 0
     }
 
-    It 'SymbolDIFF contains DIFF' {
-        $script:SymbolDIFF | Should -BeLike '*DIFF*'
+    It 'Parses server:port notation correctly' {
+        $result = Resolve-VMMServerConnection -VMMServer 'vmm01:9000'
+        Should -Invoke Get-SCVMMServer -Times 1 -Exactly -ParameterFilter {
+            $ComputerName -eq 'vmm01' -and $TCPPort -eq 9000
+        }
+        $result.Count | Should -Be 0
+    }
+
+    It 'Returns an empty hashtable for an existing connection object' {
+        $connObj = [PSCustomObject]@{ ServerInterfaceType = 'RemotingConnection'; Name = 'vmm01' }
+        $result = Resolve-VMMServerConnection -VMMServer $connObj
+        $result | Should -BeOfType [hashtable]
+        $result.Count | Should -Be 0
+        Should -Invoke Get-SCVMMServer -Times 0 -Exactly
+    }
+
+    It 'Throws when Get-SCVMMServer fails' {
+        Mock Get-SCVMMServer { throw 'Connection refused' }
+        { Resolve-VMMServerConnection -VMMServer 'bad-host' } | Should -Throw '*Failed to connect*'
     }
 }
 
@@ -446,9 +456,9 @@ Describe 'Compare-VMMPortProfile' {
             $result.DifferenceProfile | Should -Be 'LowLatency'
         }
 
-        It 'Counts total properties as 16 for vNIC comparison' {
+        It 'Counts total properties as 14 for vNIC comparison' {
             $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' -DifferenceProfileName 'LowLatency'
-            $result.TotalProperties | Should -Be 16
+            $result.TotalProperties | Should -Be 14
         }
 
         It 'Detects differences between the two profiles' {
@@ -498,9 +508,9 @@ Describe 'Compare-VMMPortProfile' {
             $result.ProfileType | Should -Be 'NativeUplink'
         }
 
-        It 'Reports 5 properties for uplink comparison' {
+        It 'Reports 3 properties for uplink comparison' {
             $result = Compare-VMMPortProfile -ReferenceProfileName 'UplinkLBFO' -DifferenceProfileName 'UplinkSET' -IncludeUplinkProfiles
-            $result.TotalProperties | Should -Be 5
+            $result.TotalProperties | Should -Be 3
         }
     }
 
@@ -666,13 +676,6 @@ Describe 'Compare-VMMPortProfileSettings' {
             $result = Compare-VMMPortProfileSettings -Name 'UplinkLBFO', 'UplinkSET' -IncludeUplinkProfiles
             $result | Should -HaveCount 3
             $result[0].PSObject.Properties.Name | Should -Contain 'UplinkLBFO'
-        }
-    }
-
-    Context '-HighlightDifferences switch' {
-
-        It 'Does not throw when -HighlightDifferences is set' {
-            { Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency' -HighlightDifferences } | Should -Not -Throw
         }
     }
 

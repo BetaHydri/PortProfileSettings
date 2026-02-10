@@ -13,16 +13,6 @@
     Uplink port profiles can be included via the -IncludeUplinkProfiles switch.
 #>
 
-# Emoji-safe status markers — Unicode on PS 7.x, ASCII fallback on PS 5.1
-if ($PSVersionTable.PSVersion.Major -ge 7) {
-    $script:SymbolOK = "$([char]0x2705) OK"
-    $script:SymbolDIFF = "$([char]0x26A0)  DIFF"
-}
-else {
-    $script:SymbolOK = '[OK]'
-    $script:SymbolDIFF = '[DIFF]'
-}
-
 #region Helper Functions
 
 function Get-PortProfilePropertyMap {
@@ -101,56 +91,6 @@ function Format-PropertyComparison {
             $ReferenceName  = $refStr
             $DifferenceName = $diffStr
             Match           = $match
-        }
-    }
-}
-
-function Format-ConsoleTable {
-    <#
-    .SYNOPSIS
-        Renders an array of objects as a pipe-bordered ASCII table on the console.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [PSObject[]]$Data,
-
-        [Parameter(Mandatory)]
-        [string[]]$Columns,
-
-        [scriptblock]$HighlightCondition
-    )
-
-    # Calculate column widths (minimum = header length)
-    $widths = [ordered]@{}
-    foreach ($col in $Columns) {
-        $maxLen = $col.Length
-        foreach ($row in $Data) {
-            $len = "$($row.$col)".Length
-            if ($len -gt $maxLen) { $maxLen = $len }
-        }
-        $widths[$col] = $maxLen
-    }
-
-    # Build lines
-    $separatorParts = $Columns | ForEach-Object { '-' * ($widths[$_] + 2) }
-    $separator = '|' + ($separatorParts -join '|') + '|'
-
-    $headerParts = $Columns | ForEach-Object { ' ' + $_.PadRight($widths[$_]) + ' ' }
-    $headerLine = '|' + ($headerParts -join '|') + '|'
-
-    Write-Host $headerLine
-    Write-Host $separator
-
-    foreach ($row in $Data) {
-        $parts = $Columns | ForEach-Object { ' ' + "$($row.$_)".PadRight($widths[$_]) + ' ' }
-        $line = '|' + ($parts -join '|') + '|'
-
-        if ($HighlightCondition -and (& $HighlightCondition $row)) {
-            Write-Host $line -ForegroundColor Yellow
-        }
-        else {
-            Write-Host $line
         }
     }
 }
@@ -744,9 +684,6 @@ function Compare-VMMPortProfileSettings {
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are compared instead of vNIC profiles.
 
-    .PARAMETER HighlightDifferences
-        When specified, the console output highlights rows where profiles differ.
-
     .EXAMPLE
         Compare-VMMPortProfileSettings
 
@@ -756,11 +693,6 @@ function Compare-VMMPortProfileSettings {
         Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault'
 
         Compares the three named profiles in a side-by-side settings matrix.
-
-    .EXAMPLE
-        Compare-VMMPortProfileSettings -Name 'High*' -HighlightDifferences
-
-        Compares all profiles matching "High*" and highlights rows that differ.
 
     .EXAMPLE
         Compare-VMMPortProfileSettings -IncludeUplinkProfiles
@@ -800,10 +732,7 @@ function Compare-VMMPortProfileSettings {
         $VMMServer,
 
         [Parameter()]
-        [switch]$IncludeUplinkProfiles,
-
-        [Parameter()]
-        [switch]$HighlightDifferences
+        [switch]$IncludeUplinkProfiles
     )
 
     begin {
@@ -925,7 +854,6 @@ function Compare-VMMPortProfileSettings {
 
         # Console display
         $profileNames = @($profiles | ForEach-Object { $_.Name })
-        $columns = @('Setting') + $profileNames + @('AllMatch')
 
         Write-Host "`n=== Port Profile Settings Matrix ===" -ForegroundColor Cyan
         Write-Host "Profiles: $($profileNames -join ', ')" -ForegroundColor White

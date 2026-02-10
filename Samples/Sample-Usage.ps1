@@ -12,7 +12,7 @@
 
 .NOTES
     Module : Compare-VMMSettings
-    Version: 1.1.0
+    Version: 1.3.0
 #>
 
 #requires -Modules VirtualMachineManager
@@ -47,24 +47,27 @@ Get-VMMPortProfileUsage -IncludeUplinkProfiles |
     Format-Table ProfileType, Name, LogicalSwitchNames -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 5. Compare two vNIC port profiles – full comparison
+# 5. Compare two vNIC port profiles – full comparison (table view)
 # ──────────────────────────────────────────────────────────────────────────────
-Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
-                       -DifferenceProfileName 'LowBandwidth'
+$result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
+                                 -DifferenceProfileName 'LowBandwidth'
+$result.PropertyComparison | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6. Compare two vNIC port profiles – differences only
+# 6. Compare two vNIC port profiles – differences only (table view)
 # ──────────────────────────────────────────────────────────────────────────────
-Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
-                       -DifferenceProfileName 'LowBandwidth' `
-                       -DifferencesOnly
+$result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
+                                 -DifferenceProfileName 'LowBandwidth' `
+                                 -DifferencesOnly
+$result.PropertyComparison | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 7. Compare two uplink profiles
+# 7. Compare two uplink profiles (table view)
 # ──────────────────────────────────────────────────────────────────────────────
-Compare-VMMPortProfile -ReferenceProfileName 'UplinkTeamA' `
-                       -DifferenceProfileName 'UplinkTeamB' `
-                       -IncludeUplinkProfiles
+$result = Compare-VMMPortProfile -ReferenceProfileName 'UplinkTeamA' `
+                                 -DifferenceProfileName 'UplinkTeamB' `
+                                 -IncludeUplinkProfiles
+$result.PropertyComparison | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 8. Export a comparison to CSV for documentation / auditing
@@ -100,20 +103,22 @@ Get-VMMPortProfileUsage -VMMServer $vmm |
     Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 13. Settings matrix – compare key settings of multiple profiles at once
-# ──────────────────────────────────────────────────────────────────────────────
-Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault'
-
-# ──────────────────────────────────────────────────────────────────────────────
-# 14. Settings matrix – show only differing settings
+# 13. Settings matrix – compare key settings of multiple profiles at once (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
-    Where-Object { -not $_.AllMatch }
+    Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 15. Settings matrix – all profiles with highlighted differences
+# 14. Settings matrix – show only differing settings (table view)
 # ──────────────────────────────────────────────────────────────────────────────
-Compare-VMMPortProfileSettings -HighlightDifferences
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
+    Where-Object { -not $_.AllMatch } |
+    Format-Table -AutoSize
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 15. Settings matrix – all profiles (table view)
+# ──────────────────────────────────────────────────────────────────────────────
+Compare-VMMPortProfileSettings | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 16. Settings matrix – pipe profile objects directly
@@ -122,9 +127,10 @@ $profiles = Get-SCVirtualNetworkAdapterNativePortProfile
 Compare-VMMPortProfileSettings -ProfileObject $profiles
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 17. Settings matrix – include uplink profiles in the comparison
+# 17. Settings matrix – include uplink profiles in the comparison (table view)
 # ──────────────────────────────────────────────────────────────────────────────
-Compare-VMMPortProfileSettings -Name 'UplinkTeamLBFO', 'UplinkTeamSET' -IncludeUplinkProfiles
+Compare-VMMPortProfileSettings -Name 'UplinkTeamLBFO', 'UplinkTeamSET' -IncludeUplinkProfiles |
+    Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 18. Settings matrix – export differences to CSV

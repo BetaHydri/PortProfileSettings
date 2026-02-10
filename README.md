@@ -14,12 +14,11 @@ Quickly identify where port profiles are used, which logical switches reference 
 ## Features
 
 - **Retrieve** all vNIC native port profiles with their full settings and binding context
-- **Compare** two port profiles property-by-property with a clear OK / DIFF report
+- **Compare** two port profiles property-by-property with a clear match/diff report
 - **Matrix view** of key settings across multiple profiles at once — spot differences instantly
 - **Cross-reference** profiles against logical switches in a single binding matrix
 - Uplink port profiles excluded by default — opt-in with `-IncludeUplinkProfiles`
-- Highlight differences in the console with `-HighlightDifferences`
-- Structured output objects for further pipeline processing or CSV export
+- Structured output objects for further pipeline processing, `Format-Table` display, or CSV export
 
 ## Requirements
 
@@ -104,38 +103,39 @@ Get-VMMPortProfileUsage -IncludeUplinkProfiles |
 ### 4. Compare two vNIC port profiles — full comparison
 
 ```powershell
-Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
-                       -DifferenceProfileName 'LowLatency'
+$result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
+                                 -DifferenceProfileName 'LowLatency'
+$result.PropertyComparison | Format-Table -AutoSize
 ```
 
-**Output:**
+**Console header output:**
 
 ```
 === Port Profile Comparison ===
 Reference : HighBandwidth
 Difference: LowLatency
 Type      : VirtualNetworkAdapter
-Matching  : 12/16  |  Differing: 4/16
+Matching  : 12/14  |  Differing: 2/14
 ```
+
+**`PropertyComparison` table output:**
 
 | Property | HighBandwidth | LowLatency | Match |
 |---|---|---|---|
-| Name | HighBandwidth | LowLatency | ⚠ DIFF |
-| Description | High throughput | Low latency NIC | ⚠ DIFF |
-| AllowIeeePriorityTagging | True | True | ✅ OK |
-| AllowMacAddressSpoofing | False | False | ✅ OK |
-| AllowTeaming | True | True | ✅ OK |
-| EnableDhcpGuard | False | False | ✅ OK |
-| EnableGuestIPNetworkVirtualizationUpdates | False | False | ✅ OK |
-| EnableRouterGuard | False | False | ✅ OK |
-| EnableVmq | True | False | ⚠ DIFF |
-| EnableIPsecOffload | True | True | ✅ OK |
-| EnableVrss | True | True | ✅ OK |
-| EnableIov | False | False | ✅ OK |
-| MinimumBandwidthWeight | 80 | 50 | ⚠ DIFF |
-| MinimumBandwidthAbsolute | 0 | 0 | ✅ OK |
-| MaximumBandwidth | 10000 | 10000 | ✅ OK |
-| PortACL | *not set* | *not set* | ✅ OK |
+| AllowIeeePriorityTagging | True | True | True |
+| AllowMacAddressSpoofing | False | False | True |
+| AllowTeaming | True | True | True |
+| EnableDhcpGuard | False | False | True |
+| EnableGuestIPNetworkVirtualizationUpdates | False | False | True |
+| EnableRouterGuard | False | False | True |
+| EnableVmq | True | False | False |
+| EnableIPsecOffload | True | True | True |
+| EnableVrss | True | True | True |
+| EnableIov | False | False | True |
+| MinimumBandwidthWeight | 80 | 50 | False |
+| MinimumBandwidthAbsolute | 0 | 0 | True |
+| MaximumBandwidth | 10000 | 10000 | True |
+| PortACL | *not set* | *not set* | True |
 
 ```
 --- Bindings ---
@@ -154,53 +154,55 @@ Matching  : 12/16  |  Differing: 4/16
 ### 5. Compare two profiles — differences only
 
 ```powershell
-Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
-                       -DifferenceProfileName 'LowLatency' `
-                       -DifferencesOnly
+$result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
+                                 -DifferenceProfileName 'LowLatency' `
+                                 -DifferencesOnly
+$result.PropertyComparison | Format-Table -AutoSize
 ```
 
-**Output:**
+**Console header output:**
 
 ```
 === Port Profile Comparison ===
 Reference : HighBandwidth
 Difference: LowLatency
 Type      : VirtualNetworkAdapter
-Matching  : 12/16  |  Differing: 4/16
+Matching  : 12/14  |  Differing: 2/14
 ```
+
+**`PropertyComparison` table output (differences only):**
 
 | Property | HighBandwidth | LowLatency | Match |
 |---|---|---|---|
-| Name | HighBandwidth | LowLatency | ⚠ DIFF |
-| Description | High throughput | Low latency NIC | ⚠ DIFF |
-| EnableVmq | True | False | ⚠ DIFF |
-| MinimumBandwidthWeight | 80 | 50 | ⚠ DIFF |
+| EnableVmq | True | False | False |
+| MinimumBandwidthWeight | 80 | 50 | False |
 
 ### 6. Compare uplink profiles
 
 ```powershell
-Compare-VMMPortProfile -ReferenceProfileName 'UplinkTeamLBFO' `
-                       -DifferenceProfileName 'UplinkTeamSET' `
-                       -IncludeUplinkProfiles
+$result = Compare-VMMPortProfile -ReferenceProfileName 'UplinkTeamLBFO' `
+                                 -DifferenceProfileName 'UplinkTeamSET' `
+                                 -IncludeUplinkProfiles
+$result.PropertyComparison | Format-Table -AutoSize
 ```
 
-**Output:**
+**Console header output:**
 
 ```
 === Port Profile Comparison ===
 Reference : UplinkTeamLBFO
 Difference: UplinkTeamSET
 Type      : NativeUplink
-Matching  : 2/5  |  Differing: 3/5
+Matching  : 2/3  |  Differing: 1/3
 ```
+
+**`PropertyComparison` table output:**
 
 | Property | UplinkTeamLBFO | UplinkTeamSET | Match |
 |---|---|---|---|
-| Name | UplinkTeamLBFO | UplinkTeamSET | ⚠ DIFF |
-| Description | LBFO team uplink | SET team uplink | ⚠ DIFF |
-| EnableNetworkVirtualization | True | True | ✅ OK |
-| LBFOLoadBalancingAlgorithm | HyperVPort | Dynamic | ⚠ DIFF |
-| LBFOTeamMode | SwitchIndependent | SwitchIndependent | ✅ OK |
+| EnableNetworkVirtualization | True | True | True |
+| LBFOLoadBalancingAlgorithm | HyperVPort | Dynamic | False |
+| LBFOTeamMode | SwitchIndependent | SwitchIndependent | True |
 
 ```
 --- Bindings ---
@@ -288,10 +290,11 @@ Report saved to: .\AuditReport.csv
 ### 13. Settings matrix — compare multiple profiles at once
 
 ```powershell
-Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault'
+Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
+    Format-Table -AutoSize
 ```
 
-**Output:**
+**Console header output:**
 
 ```
 === Port Profile Settings Matrix ===
@@ -299,49 +302,43 @@ Profiles: HighBandwidth, LowLatency, GuestDefault
 Settings: 14  |  All identical: 8  |  Differ: 6
 ```
 
+**Table output:**
+
 | Setting | HighBandwidth | LowLatency | GuestDefault | AllMatch |
 |---|---|---|---|---|
-| AllowIeeePriorityTagging | True | True | True | ✅ OK |
-| AllowMacAddressSpoofing | False | False | True | ⚠ DIFF |
-| AllowTeaming | True | True | False | ⚠ DIFF |
-| EnableDhcpGuard | False | False | False | ✅ OK |
-| EnableGuestIPNetworkVirtualizationUpdates | False | False | False | ✅ OK |
-| EnableRouterGuard | False | False | False | ✅ OK |
-| EnableVmq | True | False | False | ⚠ DIFF |
-| EnableIPsecOffload | True | True | False | ⚠ DIFF |
-| EnableVrss | True | True | True | ✅ OK |
-| EnableIov | False | False | False | ✅ OK |
-| MinimumBandwidthWeight | 80 | 50 | 20 | ⚠ DIFF |
-| MinimumBandwidthAbsolute | 0 | 0 | 0 | ✅ OK |
-| MaximumBandwidth | 10000 | 10000 | 5000 | ⚠ DIFF |
-| PortACL | *not set* | *not set* | *not set* | ✅ OK |
+| AllowIeeePriorityTagging | True | True | True | True |
+| AllowMacAddressSpoofing | False | False | True | False |
+| AllowTeaming | True | True | False | False |
+| EnableDhcpGuard | False | False | False | True |
+| EnableGuestIPNetworkVirtualizationUpdates | False | False | False | True |
+| EnableRouterGuard | False | False | False | True |
+| EnableVmq | True | False | False | False |
+| EnableIPsecOffload | True | True | False | False |
+| EnableVrss | True | True | True | True |
+| EnableIov | False | False | False | True |
+| MinimumBandwidthWeight | 80 | 50 | 20 | False |
+| MinimumBandwidthAbsolute | 0 | 0 | 0 | True |
+| MaximumBandwidth | 10000 | 10000 | 5000 | False |
+| PortACL | *not set* | *not set* | *not set* | True |
 
 ### 14. Settings matrix — show only differences
 
 ```powershell
 Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
-    Where-Object { -not $_.AllMatch }
+    Where-Object { -not $_.AllMatch } |
+    Format-Table -AutoSize
 ```
 
 **Output:**
 
 | Setting | HighBandwidth | LowLatency | GuestDefault | AllMatch |
 |---|---|---|---|---|
-| AllowMacAddressSpoofing | False | False | True | ⚠ DIFF |
-| AllowTeaming | True | True | False | ⚠ DIFF |
-| EnableVmq | True | False | False | ⚠ DIFF |
-| EnableIPsecOffload | True | True | False | ⚠ DIFF |
-| MinimumBandwidthWeight | 80 | 50 | 20 | ⚠ DIFF |
-| MaximumBandwidth | 10000 | 10000 | 5000 | ⚠ DIFF |
-
-### 15. Settings matrix — all profiles with highlighted differences
-
-```powershell
-Compare-VMMPortProfileSettings -HighlightDifferences
-```
-
-Outputs the full matrix to the console with differing rows printed in **yellow**
-for quick visual identification.
+| AllowMacAddressSpoofing | False | False | True | False |
+| AllowTeaming | True | True | False | False |
+| EnableVmq | True | False | False | False |
+| EnableIPsecOffload | True | True | False | False |
+| MinimumBandwidthWeight | 80 | 50 | 20 | False |
+| MaximumBandwidth | 10000 | 10000 | 5000 | False |
 
 ---
 

@@ -48,13 +48,13 @@ uplink port profiles.
     CmdletsToExport   = @()
 
     # Variables to export from this module
-    VariablesToExport  = @()
+    VariablesToExport = @()
 
     # Aliases to export from this module
-    AliasesToExport    = @()
+    AliasesToExport   = @()
 
     # Private data passed to the module specified in RootModule
-    PrivateData = @{
+    PrivateData       = @{
 
         PSData = @{
 

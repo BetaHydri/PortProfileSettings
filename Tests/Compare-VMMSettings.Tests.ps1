@@ -33,7 +33,15 @@ BeforeAll {
 
     foreach ($name in $vmmCmdlets) {
         # Always create stubs — overrides real VMM cmdlets if the console is installed
-        Set-Item -Path "function:global:$name" -Value { }
+        if ($name -eq 'Get-SCVMMServer') {
+            # Get-SCVMMServer needs explicit parameters so Pester can match them in ParameterFilter
+            function global:Get-SCVMMServer {
+                param($ComputerName, [int]$TCPPort, $ErrorAction)
+            }
+        }
+        else {
+            Set-Item -Path "function:global:$name" -Value { }
+        }
     }
 
     # ── Dot-source the module implementation ─────────────────────────────────

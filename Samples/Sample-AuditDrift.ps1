@@ -12,6 +12,11 @@
 .PARAMETER ReferenceProfileName
     The name of the port profile considered the "golden" baseline.
 
+.PARAMETER VMMServer
+    The VMM server to query. Accepts a hostname string (default port 8100),
+    'server:port' for custom ports, or an existing VMM server connection object.
+    If omitted, the current default connection is used.
+
 .PARAMETER ReportPath
     Path to write the CSV audit report. Defaults to .\AuditReport.csv.
 
@@ -21,13 +26,18 @@
     Compares all vNIC port profiles against 'GoldenProfile' and writes a report.
 
 .EXAMPLE
+    .\Sample-AuditDrift.ps1 -ReferenceProfileName 'GoldenProfile' -VMMServer 'vmm01.contoso.com'
+
+    Connects to the specified VMM server and runs the drift audit.
+
+.EXAMPLE
     .\Sample-AuditDrift.ps1 -ReferenceProfileName 'GoldenProfile' -ReportPath C:\Reports\Drift.csv
 
     Same as above but saves the report to a custom path.
 
 .NOTES
     Module : Compare-VMMSettings
-    Version: 1.3.0
+    Version: 1.5.0
 #>
 
 #requires -Modules VirtualMachineManager
@@ -38,13 +48,20 @@ param(
     [string]$ReferenceProfileName,
 
     [Parameter()]
+    [string]$VMMServer,
+
+    [Parameter()]
     [string]$ReportPath = '.\AuditReport.csv'
 )
 
 Import-Module "$PSScriptRoot\..\Compare-VMMSettings.psd1" -Force
 
+# Build splatting hashtable for -VMMServer
+$vmmParam = @{}
+if ($VMMServer) { $vmmParam['VMMServer'] = $VMMServer }
+
 # Retrieve all profiles
-$allProfiles = Get-VMMPortProfileUsage
+$allProfiles = Get-VMMPortProfileUsage @vmmParam
 $referenceProfile = $allProfiles | Where-Object Name -EQ $ReferenceProfileName
 
 if (-not $referenceProfile) {
@@ -63,6 +80,7 @@ foreach ($profile in $allProfiles) {
     $comparison = Compare-VMMPortProfile `
         -ReferenceProfileName $ReferenceProfileName `
         -DifferenceProfileName $profile.Name `
+        @vmmParam `
         -DifferencesOnly 6>$null  # Suppress host output in batch mode
 
     if ($comparison.DifferingProperties -gt 0) {

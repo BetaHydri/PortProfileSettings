@@ -4,7 +4,7 @@
     RootModule        = 'Compare-VMMSettings.psm1'
 
     # Version number of this module
-    ModuleVersion     = '1.4.0'
+    ModuleVersion     = '1.5.0'
 
     # Unique identifier for this module
     GUID              = 'a3f7c8e1-4b2d-4e9a-b6f0-1d2e3f4a5b6c'

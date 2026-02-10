@@ -4,7 +4,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![SCVMM](https://img.shields.io/badge/SCVMM-2019%20%7C%202022%20%7C%202025-5C2D91?logo=microsoft&logoColor=white)
-![Module Version](https://img.shields.io/badge/Version-1.4.0-orange)
+![Module Version](https://img.shields.io/badge/Version-1.5.0-orange)
 ![Functions](https://img.shields.io/badge/Functions-4-informational)
 
 A PowerShell module for **comparing and reporting on VMM Port Profile settings** and their bindings across the System Center Virtual Machine Manager (SCVMM) fabric.
@@ -26,7 +26,7 @@ Quickly identify where port profiles are used, which logical switches reference 
 |---|---|
 | PowerShell | 5.1+ |
 | VirtualMachineManager module | (ships with the SCVMM console) |
-| SCVMM server connection | `Get-SCVMMServer` |
+| SCVMM server | Reachable via network |
 
 ## Installation
 
@@ -35,6 +35,41 @@ Copy the module folder to a location on your `$env:PSModulePath`, or import dire
 ```powershell
 Import-Module .\Compare-VMMSettings.psd1
 ```
+
+## Connecting to a VMM Server
+
+All functions accept an optional `-VMMServer` parameter. If omitted, the current
+default VMM connection is used (established by a prior `Get-SCVMMServer` call).
+
+**Option 1 — Hostname (default port 8100):**
+
+```powershell
+Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com'
+```
+
+**Option 2 — Hostname with custom port:**
+
+```powershell
+Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com:8101'
+```
+
+**Option 3 — Pre-established connection object:**
+
+```powershell
+$vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com' -TCPPort 8100
+Get-VMMPortProfileUsage -VMMServer $vmm
+```
+
+**Option 4 — Rely on existing session default (no parameter needed):**
+
+```powershell
+# If you already ran Get-SCVMMServer earlier in your session:
+Get-VMMPortProfileUsage
+```
+
+> **Note:** When you pass a string, the module calls `Get-SCVMMServer` internally
+> to establish the session default. All subsequent SC cmdlets then use that
+> connection implicitly.
 
 ## Exported Functions
 
@@ -264,7 +299,17 @@ Get-VMMPortProfileBindingMatrix -IncludeUplinkProfiles |
 ### 11. Query a specific VMM server
 
 ```powershell
+# Using a hostname (connects on default port 8100)
 Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com' |
+    Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+
+# Using a custom port
+Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com:8101' |
+    Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+
+# Using a pre-established connection object
+$vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com' -TCPPort 8100
+Get-VMMPortProfileUsage -VMMServer $vmm |
     Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
 ```
 

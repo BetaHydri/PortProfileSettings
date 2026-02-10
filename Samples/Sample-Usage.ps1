@@ -8,11 +8,11 @@
 
     Prerequisites:
       - System Center VMM console / PowerShell module installed
-      - An active connection to a VMM server (Get-SCVMMServer)
+      - A reachable VMM server (connection is handled via -VMMServer or a prior Get-SCVMMServer call)
 
 .NOTES
     Module : Compare-VMMSettings
-    Version: 1.3.0
+    Version: 1.5.0
 #>
 
 #requires -Modules VirtualMachineManager
@@ -21,6 +21,24 @@
 # 0. Import the module
 # ──────────────────────────────────────────────────────────────────────────────
 Import-Module .\Compare-VMMSettings.psd1 -Force
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 0a. Connect to a VMM server (pick one of the options below)
+# ──────────────────────────────────────────────────────────────────────────────
+# Option 1: Pass a hostname string — connects on default port 8100
+#   Every function supports -VMMServer, e.g.:
+#   Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com'
+
+# Option 2: Pass hostname:port for a custom port
+#   Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com:8101'
+
+# Option 3: Pass a pre-established connection object
+#   $vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com' -TCPPort 8100
+#   Get-VMMPortProfileUsage -VMMServer $vmm
+
+# Option 4: Rely on an existing session default (no -VMMServer needed)
+#   If you already ran Get-SCVMMServer earlier in your session, all functions
+#   will use that connection automatically.
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. List all vNIC port profiles and see where they are bound
@@ -96,10 +114,19 @@ Export-Csv -Path .\BindingMatrix.csv -NoTypeInformation
 Write-Host "Exported to .\BindingMatrix.csv"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 12. Query a specific VMM server
+# 12. Query a specific VMM server (all connection variants)
 # ──────────────────────────────────────────────────────────────────────────────
+# Hostname (default port 8100)
 Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com' |
-Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+    Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+
+# Hostname with custom port
+Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com:8101' |
+    Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+
+# Pre-established connection object
+$vmm = Get-SCVMMServer -ComputerName 'vmm01.contoso.com' -TCPPort 8100
+Get-VMMPortProfileUsage -VMMServer $vmm |
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 13. Settings matrix – compare key settings of multiple profiles at once (table view)

@@ -552,12 +552,14 @@ function Compare-VMMPortProfile {
     $properties = Get-PortProfilePropertyMap -ProfileType $profileType
 
     # Run property comparison
-    $comparison = Format-PropertyComparison `
-        -ReferenceObject  $ReferenceProfile `
-        -DifferenceObject $DifferenceProfile `
-        -Properties       $properties `
-        -ReferenceName    $ReferenceProfile.Name `
-        -DifferenceName   $DifferenceProfile.Name
+    $comparisonParams = @{
+        ReferenceObject  = $ReferenceProfile
+        DifferenceObject = $DifferenceProfile
+        Properties       = $properties
+        ReferenceName    = $ReferenceProfile.Name
+        DifferenceName   = $DifferenceProfile.Name
+    }
+    $comparison = Format-PropertyComparison @comparisonParams
 
     if ($DifferencesOnly) {
         $comparison = $comparison | Where-Object { -not $_.Match }

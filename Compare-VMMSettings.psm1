@@ -40,8 +40,6 @@ function Get-PortProfilePropertyMap {
     switch ($ProfileType) {
         'VirtualNetworkAdapter' {
             @(
-                'Name'
-                'Description'
                 'AllowIeeePriorityTagging'
                 'AllowMacAddressSpoofing'
                 'AllowTeaming'
@@ -60,8 +58,6 @@ function Get-PortProfilePropertyMap {
         }
         'NativeUplink' {
             @(
-                'Name'
-                'Description'
                 'EnableNetworkVirtualization'
                 'LBFOLoadBalancingAlgorithm'
                 'LBFOTeamMode'
@@ -606,19 +602,6 @@ function Compare-VMMPortProfile {
     Write-Host ("Matching  : {0}/{1}  |  Differing: {2}/{1}" -f $summary.MatchingProperties, $summary.TotalProperties, $summary.DifferingProperties)
     Write-Host ''
 
-    # Build display rows with emoji markers
-    $displayData = foreach ($row in $comparison) {
-        $d = [ordered]@{ Property = $row.Property }
-        $d[$ReferenceProfile.Name] = $row.$($ReferenceProfile.Name)
-        $d[$DifferenceProfile.Name] = $row.$($DifferenceProfile.Name)
-        $d['Match'] = if ($row.Match) { $script:SymbolOK } else { $script:SymbolDIFF }
-        [PSCustomObject]$d
-    }
-
-    $tableColumns = @('Property', $ReferenceProfile.Name, $DifferenceProfile.Name, 'Match')
-    Format-ConsoleTable -Data $displayData -Columns $tableColumns
-    Write-Host ''
-
     # Show bindings
     Write-Host '--- Bindings ---' -ForegroundColor Cyan
 
@@ -951,24 +934,6 @@ function Compare-VMMPortProfileSettings {
             ($settingsMatrix | Where-Object AllMatch | Measure-Object).Count,
             ($settingsMatrix | Where-Object { -not $_.AllMatch } | Measure-Object).Count
         )
-        Write-Host ''
-
-        # Build display rows with emoji markers
-        $displayData = foreach ($row in $settingsMatrix) {
-            $d = [ordered]@{ Setting = $row.Setting }
-            foreach ($pn in $profileNames) {
-                $d[$pn] = $row.$pn
-            }
-            $d['AllMatch'] = if ($row.AllMatch) { $script:SymbolOK } else { $script:SymbolDIFF }
-            [PSCustomObject]$d
-        }
-
-        $highlightBlock = if ($HighlightDifferences) {
-            { param($r) $r.AllMatch -like '*DIFF*' }
-        }
-        else { $null }
-
-        Format-ConsoleTable -Data $displayData -Columns $columns -HighlightCondition $highlightBlock
         Write-Host ''
 
         # Return structured objects for pipeline

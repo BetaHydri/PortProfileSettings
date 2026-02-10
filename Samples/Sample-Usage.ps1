@@ -26,14 +26,14 @@ Import-Module .\Compare-VMMSettings.psd1 -Force
 # 1. List all vNIC port profiles and see where they are bound
 # ──────────────────────────────────────────────────────────────────────────────
 Get-VMMPortProfileUsage |
-    Format-Table Name, LogicalSwitchNames, PortClassificationNames -AutoSize
+Format-Table Name, LogicalSwitchNames, PortClassificationNames -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 2. Find orphaned / unbound port profiles
 # ──────────────────────────────────────────────────────────────────────────────
 Get-VMMPortProfileUsage |
-    Where-Object { -not $_.LogicalSwitchNames } |
-    Select-Object Name, Description
+Where-Object { -not $_.LogicalSwitchNames } |
+Select-Object Name, Description
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 3. Filter by wildcard name
@@ -44,29 +44,29 @@ Get-VMMPortProfileUsage -Name 'High*'
 # 4. Include uplink profiles as well
 # ──────────────────────────────────────────────────────────────────────────────
 Get-VMMPortProfileUsage -IncludeUplinkProfiles |
-    Format-Table ProfileType, Name, LogicalSwitchNames -AutoSize
+Format-Table ProfileType, Name, LogicalSwitchNames -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 5. Compare two vNIC port profiles – full comparison (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
-                                 -DifferenceProfileName 'LowBandwidth'
+    -DifferenceProfileName 'LowBandwidth'
 $result.PropertyComparison | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 6. Compare two vNIC port profiles – differences only (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 $result = Compare-VMMPortProfile -ReferenceProfileName 'HighBandwidth' `
-                                 -DifferenceProfileName 'LowBandwidth' `
-                                 -DifferencesOnly
+    -DifferenceProfileName 'LowBandwidth' `
+    -DifferencesOnly
 $result.PropertyComparison | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 7. Compare two uplink profiles (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 $result = Compare-VMMPortProfile -ReferenceProfileName 'UplinkTeamA' `
-                                 -DifferenceProfileName 'UplinkTeamB' `
-                                 -IncludeUplinkProfiles
+    -DifferenceProfileName 'UplinkTeamB' `
+    -IncludeUplinkProfiles
 $result.PropertyComparison | Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ Write-Host "Exported to .\ProfileComparison.csv"
 # ──────────────────────────────────────────────────────────────────────────────
 # 9. Pass profile objects directly (pipeline / scripting scenario)
 # ──────────────────────────────────────────────────────────────────────────────
-$ref  = Get-SCVirtualNetworkAdapterNativePortProfile -Name 'ProfileA'
+$ref = Get-SCVirtualNetworkAdapterNativePortProfile -Name 'ProfileA'
 $diff = Get-SCVirtualNetworkAdapterNativePortProfile -Name 'ProfileB'
 Compare-VMMPortProfile -ReferenceProfile $ref -DifferenceProfile $diff
 
@@ -92,27 +92,27 @@ Get-VMMPortProfileBindingMatrix | Format-Table -AutoSize
 # 11. Binding matrix – include uplinks, export to CSV
 # ──────────────────────────────────────────────────────────────────────────────
 Get-VMMPortProfileBindingMatrix -IncludeUplinkProfiles |
-    Export-Csv -Path .\BindingMatrix.csv -NoTypeInformation
+Export-Csv -Path .\BindingMatrix.csv -NoTypeInformation
 Write-Host "Exported to .\BindingMatrix.csv"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 12. Query a specific VMM server
 # ──────────────────────────────────────────────────────────────────────────────
 Get-VMMPortProfileUsage -VMMServer 'vmm01.contoso.com' |
-    Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
+Format-Table Name, LogicalSwitchNames, PortProfileSetNames -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 13. Settings matrix – compare key settings of multiple profiles at once (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
-    Format-Table -AutoSize
+Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 14. Settings matrix – show only differing settings (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
-    Where-Object { -not $_.AllMatch } |
-    Format-Table -AutoSize
+Where-Object { -not $_.AllMatch } |
+Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 15. Settings matrix – all profiles (table view)
@@ -129,12 +129,12 @@ Compare-VMMPortProfileSettings -ProfileObject $profiles
 # 17. Settings matrix – include uplink profiles in the comparison (table view)
 # ──────────────────────────────────────────────────────────────────────────────
 Compare-VMMPortProfileSettings -Name 'UplinkTeamLBFO', 'UplinkTeamSET' -IncludeUplinkProfiles |
-    Format-Table -AutoSize
+Format-Table -AutoSize
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 18. Settings matrix – export differences to CSV
 # ──────────────────────────────────────────────────────────────────────────────
 Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefault' |
-    Where-Object { -not $_.AllMatch } |
-    Export-Csv -Path .\SettingsMatrixDiff.csv -NoTypeInformation
+Where-Object { -not $_.AllMatch } |
+Export-Csv -Path .\SettingsMatrixDiff.csv -NoTypeInformation
 Write-Host "Exported to .\SettingsMatrixDiff.csv"

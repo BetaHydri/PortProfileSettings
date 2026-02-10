@@ -4,8 +4,8 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![SCVMM](https://img.shields.io/badge/SCVMM-2019%20%7C%202022%20%7C%202025-5C2D91?logo=microsoft&logoColor=white)
-![Module Version](https://img.shields.io/badge/Version-1.5.0-orange)
-![Functions](https://img.shields.io/badge/Functions-4-informational)
+![Module Version](https://img.shields.io/badge/Version-1.6.0-orange)
+![Functions](https://img.shields.io/badge/Functions-5-informational)
 
 A PowerShell module for **comparing and reporting on VMM Port Profile settings** and their bindings across the System Center Virtual Machine Manager (SCVMM) fabric.
 
@@ -17,6 +17,7 @@ Quickly identify where port profiles are used, which logical switches reference 
 - **Compare** two port profiles property-by-property with a clear match/diff report
 - **Matrix view** of key settings across multiple profiles at once — spot differences instantly
 - **Cross-reference** profiles against logical switches in a single binding matrix
+- **Logical switch inventory** — see what port profiles, classifications, and uplinks are bound to each switch
 - Uplink port profiles excluded by default — opt-in with `-IncludeUplinkProfiles`
 - Structured output objects for further pipeline processing, `Format-Table` display, or CSV export
 
@@ -79,6 +80,7 @@ Get-VMMPortProfileUsage
 | `Compare-VMMPortProfile` | Side-by-side comparison of two port profiles with binding context |
 | `Compare-VMMPortProfileSettings` | Multi-profile key-settings matrix (rows = settings, columns = profiles) |
 | `Get-VMMPortProfileBindingMatrix` | Cross-reference matrix of profiles → logical switches |
+| `Get-VMMLogicalSwitchUsage` | Shows what is bound to each logical switch (reverse view of port profile usage) |
 
 ---
 
@@ -384,6 +386,55 @@ Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefaul
 | MinimumBandwidthWeight | 80 | 50 | 20 | False |
 | MaximumBandwidth | 10000 | 10000 | 5000 | False |
 
+### 15. Logical switch usage — see what is bound to each switch
+
+```powershell
+Get-VMMLogicalSwitchUsage |
+    Format-Table Name, VNicPortProfileSetNames, UplinkPortProfileSetNames -AutoSize
+```
+
+**Output:**
+
+| Name | VNicPortProfileSetNames | UplinkPortProfileSetNames |
+|---|---|---|
+| ConvergedSwitch01 | HighBW-PPS, LowLat-PPS, Guest-PPS | LBFO-UplinkPPS |
+| MgmtSwitch | MgmtOS-PPS | SET-UplinkPPS |
+| TestSwitch | Test-PPS | StandaloneUplink-PPS |
+
+### 16. Logical switch usage — detailed view of a single switch
+
+```powershell
+Get-VMMLogicalSwitchUsage -Name 'ConvergedSwitch01' |
+    Select-Object Name, VNicPortProfileSetNames, NativePortProfileNames,
+                  UplinkPortProfileSetNames, NativeUplinkPortProfileNames,
+                  PortClassificationNames
+```
+
+**Output:**
+
+| Name | VNicPortProfileSetNames | NativePortProfileNames | UplinkPortProfileSetNames | NativeUplinkPortProfileNames | PortClassificationNames |
+|---|---|---|---|---|---|
+| ConvergedSwitch01 | HighBW-PPS, LowLat-PPS, Guest-PPS | HighBandwidth, LowLatency, GuestDefault | LBFO-UplinkPPS | UplinkTeamLBFO | High Bandwidth, Low Latency, Guest Dynamic |
+
+### 17. Logical switch usage — find switches with no vNIC port profile sets
+
+```powershell
+Get-VMMLogicalSwitchUsage |
+    Where-Object VNicPortProfileSetCount -eq 0 |
+    Select-Object Name, Description
+```
+
+### 18. Logical switch usage — export to CSV
+
+```powershell
+Get-VMMLogicalSwitchUsage |
+    Select-Object Name, Description, VNicPortProfileSetCount, VNicPortProfileSetNames,
+                  NativePortProfileNames, UplinkPortProfileSetCount,
+                  UplinkPortProfileSetNames, NativeUplinkPortProfileNames,
+                  PortClassificationNames |
+    Export-Csv -Path .\LogicalSwitchUsage.csv -NoTypeInformation
+```
+
 ---
 
 ## Return Objects
@@ -396,6 +447,7 @@ All functions return structured PowerShell objects for pipeline use:
 | `VMM.PortProfileComparison` | `Compare-VMMPortProfile` | `PropertyComparison` (array), `MatchingProperties`, `DifferingProperties`, `ReferenceBindings`, `DifferenceBindings` |
 | `VMM.PortProfileSettingsMatrix` | `Compare-VMMPortProfileSettings` | `Setting`, one column per profile name, `AllMatch` |
 | `VMM.PortProfileBindingMatrix` | `Get-VMMPortProfileBindingMatrix` | `ProfileName`, `ProfileType`, `LogicalSwitches`, `PortProfileSets`, `Classifications` |
+| `VMM.LogicalSwitchUsage` | `Get-VMMLogicalSwitchUsage` | `Name`, `VNicPortProfileSetNames`, `NativePortProfileNames`, `UplinkPortProfileSetNames`, `NativeUplinkPortProfileNames`, `PortClassificationNames` |
 
 ## Project Structure
 
@@ -423,6 +475,7 @@ Get-Help Get-VMMPortProfileUsage -Full
 Get-Help Compare-VMMPortProfile -Examples
 Get-Help Compare-VMMPortProfileSettings -Examples
 Get-Help Get-VMMPortProfileBindingMatrix -Examples
+Get-Help Get-VMMLogicalSwitchUsage -Full
 ```
 
 ## License

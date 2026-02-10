@@ -12,7 +12,7 @@
 
 .NOTES
     Module : Compare-VMMSettings
-    Version: 1.5.0
+    Version: 1.6.0
 #>
 
 #requires -Modules VirtualMachineManager
@@ -165,3 +165,40 @@ Compare-VMMPortProfileSettings -Name 'HighBandwidth', 'LowLatency', 'GuestDefaul
 Where-Object { -not $_.AllMatch } |
 Export-Csv -Path .\SettingsMatrixDiff.csv -NoTypeInformation
 Write-Host "Exported to .\SettingsMatrixDiff.csv"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 19. Logical switch usage – see what is bound to each logical switch
+# ──────────────────────────────────────────────────────────────────────────────
+Get-VMMLogicalSwitchUsage |
+    Format-Table Name, VNicPortProfileSetNames, UplinkPortProfileSetNames -AutoSize
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 20. Logical switch usage – filter by switch name
+# ──────────────────────────────────────────────────────────────────────────────
+Get-VMMLogicalSwitchUsage -Name 'ConvergedSwitch*'
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 21. Logical switch usage – find switches with no vNIC port profile sets
+# ──────────────────────────────────────────────────────────────────────────────
+Get-VMMLogicalSwitchUsage |
+    Where-Object VNicPortProfileSetCount -eq 0 |
+    Select-Object Name, Description
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 22. Logical switch usage – detailed view of a single switch
+# ──────────────────────────────────────────────────────────────────────────────
+Get-VMMLogicalSwitchUsage -Name 'ConvergedSwitch01' |
+    Select-Object Name, VNicPortProfileSetNames, NativePortProfileNames,
+                  UplinkPortProfileSetNames, NativeUplinkPortProfileNames,
+                  PortClassificationNames
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 23. Logical switch usage – export to CSV
+# ──────────────────────────────────────────────────────────────────────────────
+Get-VMMLogicalSwitchUsage |
+    Select-Object Name, Description, VNicPortProfileSetCount, VNicPortProfileSetNames,
+                  NativePortProfileNames, UplinkPortProfileSetCount,
+                  UplinkPortProfileSetNames, NativeUplinkPortProfileNames,
+                  PortClassificationNames |
+    Export-Csv -Path .\LogicalSwitchUsage.csv -NoTypeInformation
+Write-Host "Exported to .\LogicalSwitchUsage.csv"

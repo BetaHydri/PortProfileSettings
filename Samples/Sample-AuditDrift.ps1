@@ -37,7 +37,7 @@
 
 .NOTES
     Module : Compare-VMMSettings
-    Version: 1.5.0
+    Version: 1.6.0
 #>
 
 #requires -Modules VirtualMachineManager

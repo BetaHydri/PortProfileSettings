@@ -120,7 +120,8 @@ function Resolve-VMMServerConnection {
         Resolves a VMMServer parameter to a connected VMM server object.
     .DESCRIPTION
         Accepts either a hostname string or an existing VMM server connection object.
-        If a string is passed, connects via Get-SCVMMServer -ComputerName with port 8100.
+        If a string is passed, connects via Get-SCVMMServer. Supports 'server:port'
+        notation for custom ports, or just 'server' which defaults to port 8100.
         Returns a hashtable suitable for splatting (@{ VMMServer = $connection }).
     #>
     [CmdletBinding()]
@@ -138,14 +139,22 @@ function Resolve-VMMServerConnection {
         return @{ VMMServer = $VMMServer }
     }
 
-    # Treat as hostname string — connect on the default VMM port
+    # Treat as hostname string — supports 'server' (port 8100) or 'server:port'
     if ($VMMServer -is [string]) {
+        if ($VMMServer -match '^(?<host>[^:]+):(?<port>\d+)$') {
+            $computerName = $Matches['host']
+            $port = [int]$Matches['port']
+        }
+        else {
+            $computerName = $VMMServer
+            $port = 8100
+        }
         try {
-            $connection = Get-SCVMMServer -ComputerName $VMMServer -TCPPort 8100 -ErrorAction Stop
+            $connection = Get-SCVMMServer -ComputerName $computerName -TCPPort $port -ErrorAction Stop
             return @{ VMMServer = $connection }
         }
         catch {
-            throw "Failed to connect to VMM server '$VMMServer' on port 8100: $($_.Exception.Message)"
+            throw "Failed to connect to VMM server '$computerName' on port ${port}: $($_.Exception.Message)"
         }
     }
 
@@ -172,8 +181,7 @@ function Get-VMMPortProfileUsage {
         Filter port profiles by name. Supports wildcards.
 
     .PARAMETER VMMServer
-        The VMM server to query. Accepts a hostname string (connects via port 8100)
-        or an existing VMM server connection object. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string, 'server:port' for custom ports (defaults to port 8100), or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are also included in the output.
@@ -428,8 +436,7 @@ function Compare-VMMPortProfile {
         A port profile object to use as the difference side of the comparison.
 
     .PARAMETER VMMServer
-        The VMM server to query. Accepts a hostname string (connects via port 8100)
-        or an existing VMM server connection object. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string, 'server:port' for custom ports (defaults to port 8100), or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, compares native uplink port profiles instead of vNIC port profiles.
@@ -619,8 +626,7 @@ function Get-VMMPortProfileBindingMatrix {
         matrix that makes it easy to see at a glance which profiles are assigned where.
 
     .PARAMETER VMMServer
-        The VMM server to query. Accepts a hostname string (connects via port 8100)
-        or an existing VMM server connection object. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string, 'server:port' for custom ports (defaults to port 8100), or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are also included in the matrix.
@@ -718,8 +724,7 @@ function Compare-VMMPortProfileSettings {
         directly, bypassing the VMM query.
 
     .PARAMETER VMMServer
-        The VMM server to query. Accepts a hostname string (connects via port 8100)
-        or an existing VMM server connection object. If omitted, the current default connection is used.
+        The VMM server to query. Accepts a hostname string, 'server:port' for custom ports (defaults to port 8100), or an existing VMM server connection object. If omitted, the current default connection is used.
 
     .PARAMETER IncludeUplinkProfiles
         When specified, native uplink port profiles are compared instead of vNIC profiles.
